@@ -1721,3 +1721,277 @@ input:focus-visible {
   font-size: 0.85rem;
   font-weight: 700;
 }
+
+/* ==========================================================================
+   Booth Inner Console & Viewfinder Dashboard (Camera Setup)
+   ========================================================================== */
+.booth-inner-console {
+  background: #23252a; /* Dark chassis casing */
+  border: 6px solid #111214;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  box-shadow: 
+    0 15px 35px rgba(0,0,0,0.4),
+    inset 0 2px 8px rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.console-viewfinder {
+  background: #090a0c;
+  border: 3px solid #363a42;
+  border-radius: 8px;
+  aspect-ratio: 4/3;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+}
+
+.viewfinder-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.7);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  z-index: 10;
+}
+
+.status-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4444;
+  box-shadow: 0 0 6px #ff4444;
+}
+
+.status-led.status-red {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  animation: led-blink 1.2s infinite alternate;
+}
+
+.status-led.status-yellow {
+  background: #eab308;
+  box-shadow: 0 0 6px #eab308;
+  animation: led-blink 0.5s infinite alternate;
+}
+
+.status-led.status-green {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: none;
+}
+
+@keyframes led-blink {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.status-label {
+  font-family: var(--font-led);
+  font-size: 0.6rem;
+  color: #ccd6e0;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.lens-glass-bezel {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 6px double #363a42;
+  background: radial-gradient(circle, #101216 40%, #1c1e24 100%);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  z-index: 3;
+}
+
+.lens-crosshairs {
+  position: absolute;
+  inset: 15px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255,255,255,0.06);
+}
+
+.lens-crosshairs::before,
+.lens-crosshairs::after {
+  content: "";
+  position: absolute;
+  background: rgba(255,255,255,0.08);
+}
+
+.lens-crosshairs::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.lens-crosshairs::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.lens-aperture {
+  width: 60px;
+  height: 60px;
+  color: #5c3d2e; /* Vintage bronze blades */
+  transform: rotate(0deg);
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.aperture-outline {
+  stroke: #363a42;
+  stroke-width: 2;
+}
+
+.aperture-blades {
+  stroke: #5c3d2e;
+  stroke-width: 1.5;
+}
+
+/* Hover rotation animation for buttons */
+.booth-inner-console:hover .lens-aperture {
+  transform: rotate(45deg);
+}
+
+.lens-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.3) 2px,
+    rgba(0, 0, 0, 0.3) 4px
+  );
+  z-index: 5;
+}
+
+.console-ticker {
+  background: #0f1013;
+  border: 2px solid #5c3d2e;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: center;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+}
+
+.ticker-text {
+  font-family: var(--font-led);
+  font-size: 0.8rem;
+  color: #ff8400; /* Amber text */
+  text-shadow: 0 0 5px rgba(255, 132, 0, 0.6);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.console-actions {
+  width: 100%;
+}
+
+.console-panel-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.console-help-text {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: hsl(var(--text-muted));
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+  padding: 0 8px;
+}
+
+.console-help-text.text-danger {
+  color: #f87171;
+}
+
+.console-btn-primary {
+  width: 100%;
+  max-width: 280px;
+  background: #c2593b; /* Heavy industrial clay/red button */
+  border: 2px solid #a34327;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.3),
+    inset 0 1px 2px rgba(255,255,255,0.2);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.console-btn-primary:hover {
+  background: #a34327;
+  border-color: #832e17;
+  box-shadow: 0 6px 12px rgba(163, 67, 39, 0.3);
+}
+
+.console-btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.console-btn-secondary {
+  width: 100%;
+  max-width: 280px;
+  font-size: 0.85rem;
+  padding: 10px 20px;
+}
+
+.console-btn-upload {
+  width: 100%;
+  max-width: 280px;
+  background: #3e5c43; /* Forest green backup uploader button */
+  border: 2px solid #2e4733;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.3),
+    inset 0 1px 2px rgba(255,255,255,0.2);
+  transition: all 0.2s ease;
+}
+
+.console-btn-upload:hover {
+  background: #2e4733;
+  border-color: #1e3022;
+  box-shadow: 0 6px 12px rgba(46, 71, 51, 0.3);
+}
+
+.console-action-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  justify-content: center;
+}
+
+.console-action-row button {
+  flex: 1;
+}
+
