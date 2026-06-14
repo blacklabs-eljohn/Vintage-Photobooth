@@ -181,14 +181,20 @@ export class CameraSetupView implements AppView {
       const files = (e.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
 
-      const isPolaroid = this.state.boothMode === 'polaroid';
-      const minRequired = isPolaroid ? 1 : 3;
+      const format = this.state.boothFormat || 'strip';
+      let minRequired = 3;
+      let formatLabel = 'vintage photostrip';
+      
+      if (format === 'polaroid' || format === 'cinematic') {
+        minRequired = 1;
+        formatLabel = format === 'polaroid' ? 'Polaroid' : 'Cinematic film';
+      } else if (format === 'postcard') {
+        minRequired = 4;
+        formatLabel = 'Retro Postcard';
+      }
 
       if (files.length < minRequired) {
-        alert(isPolaroid
-          ? 'Please select at least 1 photo to generate a Polaroid.'
-          : 'Please select at least 3 photos to generate a vintage photostrip.'
-        );
+        alert(`Please select at least ${minRequired} photo${minRequired > 1 ? 's' : ''} to generate a ${formatLabel}.`);
         return;
       }
 

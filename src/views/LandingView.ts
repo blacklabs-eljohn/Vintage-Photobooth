@@ -1,5 +1,7 @@
 import type { AppView, AppState } from '../types';
 import { AudioManager } from '../components/AudioManager';
+import leftImg from '../left.png';
+import rightImg from '../right.png';
 
 export class LandingView implements AppView {
   private state: AppState;
@@ -17,9 +19,10 @@ export class LandingView implements AppView {
   }
 
   public render(container: HTMLElement) {
-    const isStrip = this.state.boothMode === 'strip';
-    const isPolaroid = this.state.boothMode === 'polaroid';
-    const isDuet = this.state.boothMode === 'duet';
+    if (!this.state.boothFormat) this.state.boothFormat = 'strip';
+    if (!this.state.connectionMode) this.state.connectionMode = 'solo';
+
+    const currentMode = this.state.connectionMode;
 
     container.innerHTML = `
       <div class="view-panel">
@@ -35,13 +38,34 @@ export class LandingView implements AppView {
             <div class="cabinet-panel-left">
               <!-- Embedded Touchscreen Console -->
               <div class="cabinet-tablet-console" id="tabletConsole">
-                <span class="tablet-screen-title">Select Mode</span>
-                <div class="tablet-mode-cards">
-                  <button class="tablet-mode-card ${isStrip ? 'active-strip' : ''}" id="modeStripBtn" title="3-Shot Photostrip">🎞️ Strip</button>
-                  <button class="tablet-mode-card ${isPolaroid ? 'active-polaroid' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
-                  <button class="tablet-mode-card ${isDuet ? 'active-duet' : ''}" id="modeDuetBtn" title="LDR Partner Duet">👥 Duet Link</button>
+                <div class="tablet-format-slider" id="formatSlider">
+                  <button class="slider-arrow arrow-left" id="formatPrevBtn" title="Previous Format">◀</button>
+                  <div class="slider-viewport">
+                    <div class="slider-track" id="formatTrack">
+                      <div class="format-slide-card active-strip" data-format="strip" title="3-Shot Photostrip">🎞️ Strip</div>
+                      <div class="format-slide-card active-polaroid" data-format="polaroid" title="1-Shot Polaroid">📸 Polaroid</div>
+                      <div class="format-slide-card active-cinematic" data-format="cinematic" title="Landscape Cinematic Film">🎬 Cine</div>
+                      <div class="format-slide-card active-postcard" data-format="postcard" title="2x2 Retro Postcard">🎴 Postcard</div>
+                    </div>
+                  </div>
+                  <button class="slider-arrow arrow-right" id="formatNextBtn" title="Next Format">▶</button>
                 </div>
-                <span class="tablet-marquee">Tap to choose</span>
+                
+                <span class="tablet-screen-title" style="margin-top: 6px;">Mode</span>
+                <div class="toggle-switch-unit" id="modeToggle" title="Toggle Solo / Duet">
+                  <div class="toggle-label-plate ${currentMode === 'solo' ? 'active' : ''}" id="togglePlateLeft">
+                    <span class="led-dot"></span>👤 SOLO
+                  </div>
+                  <div class="toggle-switch-img-wrapper">
+                    <img src="${currentMode === 'solo' ? leftImg : rightImg}" id="toggleSwitchImg" class="toggle-switch-img" alt="Toggle Switch" />
+                  </div>
+                  <div class="toggle-label-plate plate-right ${currentMode === 'duet' ? 'active' : ''}" id="togglePlateRight">
+                    <span class="led-dot"></span>👥 DUET
+                  </div>
+                </div>
+                <span class="mode-hint-text" id="modeHintText">${currentMode === 'duet' ? '🔗 Link a partner' : '📷 Just you'}</span>
+                
+                <span class="tablet-marquee" style="margin-top: 4px;">Tap to choose</span>
               </div>
  
               <!-- Centered Coin Acceptor slot -->
@@ -89,39 +113,112 @@ export class LandingView implements AppView {
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
     const tabletMarquee = container.querySelector('.tablet-marquee') as HTMLElement;
 
-    const modeStripBtn = container.querySelector('#modeStripBtn') as HTMLButtonElement;
-    const modePolaroidBtn = container.querySelector('#modePolaroidBtn') as HTMLButtonElement;
-    const modeDuetBtn = container.querySelector('#modeDuetBtn') as HTMLButtonElement;
+    const formatTrack = container.querySelector('#formatTrack') as HTMLElement;
+    const formatPrevBtn = container.querySelector('#formatPrevBtn') as HTMLButtonElement;
+    const formatNextBtn = container.querySelector('#formatNextBtn') as HTMLButtonElement;
 
-    // Mode Selector actions on the tablet console
-    modeStripBtn?.addEventListener('click', () => {
-      if (this.state.boothMode === 'strip') return;
+    const modeToggle = container.querySelector('#modeToggle') as HTMLElement;
+    const plateLeft = container.querySelector('#togglePlateLeft') as HTMLElement;
+    const plateRight = container.querySelector('#togglePlateRight') as HTMLElement;
+    const toggleSwitchImg = container.querySelector('#toggleSwitchImg') as HTMLImageElement;
+    const modeHintText = container.querySelector('#modeHintText') as HTMLElement;
+
+    const formats = ['strip', 'polaroid', 'cinematic', 'postcard'];
+    let currentFmtIndex = formats.indexOf(this.state.boothFormat || 'strip');
+    if (currentFmtIndex === -1) currentFmtIndex = 0;
+
+    const syncStateAndMarquee = () => {
+      const fmt = this.state.boothFormat || 'strip';
+      const md = this.state.connectionMode || 'solo';
+      
+      // Update backwards compatible boothMode
+      if (md === 'duet') {
+        this.state.boothMode = 'duet';
+      } else {
+        this.state.boothMode = (fmt === 'polaroid' || fmt === 'cinematic') ? 'polaroid' : 'strip';
+      }
+
+      if (tabletMarquee) {
+        const fmtLabel = fmt.charAt(0).toUpperCase() + fmt.slice(1);
+        const mdLabel = md.charAt(0).toUpperCase() + md.slice(1);
+        tabletMarquee.textContent = `▶ ${fmtLabel} (${mdLabel})`;
+      }
+    };
+
+    const updateSliderUI = (animate = true) => {
+      if (!formatTrack) return;
+      if (!animate) {
+        formatTrack.style.transition = 'none';
+      } else {
+        formatTrack.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+      }
+      formatTrack.style.transform = `translateX(-${currentFmtIndex * 100}%)`;
+      
+      const cards = formatTrack.querySelectorAll('.format-slide-card');
+      cards.forEach((card, idx) => {
+        card.classList.toggle('active', idx === currentFmtIndex);
+      });
+
+      const newFmt = formats[currentFmtIndex];
+      this.state.boothFormat = newFmt as any;
+      syncStateAndMarquee();
+    };
+
+    // Bind slider arrow controls
+    formatPrevBtn?.addEventListener('click', () => {
+      currentFmtIndex = (currentFmtIndex - 1 + formats.length) % formats.length;
       this.audio.playBeep();
-      this.state.boothMode = 'strip';
-      modeStripBtn.classList.add('active-strip');
-      modePolaroidBtn.classList.remove('active-polaroid');
-      modeDuetBtn.classList.remove('active-duet');
-      if (tabletMarquee) tabletMarquee.textContent = '▶ Strip ready';
+      updateSliderUI(true);
     });
 
-    modePolaroidBtn?.addEventListener('click', () => {
-      if (this.state.boothMode === 'polaroid') return;
+    formatNextBtn?.addEventListener('click', () => {
+      currentFmtIndex = (currentFmtIndex + 1) % formats.length;
       this.audio.playBeep();
-      this.state.boothMode = 'polaroid';
-      modePolaroidBtn.classList.add('active-polaroid');
-      modeStripBtn.classList.remove('active-strip');
-      modeDuetBtn.classList.remove('active-duet');
-      if (tabletMarquee) tabletMarquee.textContent = '▶ Polaroid ready';
+      updateSliderUI(true);
     });
 
-    modeDuetBtn?.addEventListener('click', () => {
-      if (this.state.boothMode === 'duet') return;
-      this.audio.playBeep();
-      this.state.boothMode = 'duet';
-      modeDuetBtn.classList.add('active-duet');
-      modeStripBtn.classList.remove('active-strip');
-      modePolaroidBtn.classList.remove('active-polaroid');
-      if (tabletMarquee) tabletMarquee.textContent = '▶ Duet ready';
+    // Initialize slider position
+    updateSliderUI(false);
+
+    // Bind vintage mode toggle
+    const setMode = (newMode: 'solo' | 'duet') => {
+      if (this.state.connectionMode === newMode) return;
+      this.state.connectionMode = newMode;
+      this.audio.playTypewriter();
+      
+      // Update toggle switch image and play visual feedback
+      if (toggleSwitchImg) {
+        toggleSwitchImg.src = newMode === 'solo' ? leftImg : rightImg;
+        toggleSwitchImg.classList.add('pressed');
+        setTimeout(() => toggleSwitchImg.classList.remove('pressed'), 150);
+      }
+
+      // Update plates
+      plateLeft?.classList.toggle('active', newMode === 'solo');
+      plateRight?.classList.toggle('active', newMode === 'duet');
+
+      // Update hint text
+      if (modeHintText) {
+        modeHintText.textContent = newMode === 'duet' ? '🔗 Link a partner' : '📷 Just you';
+        modeHintText.classList.toggle('duet', newMode === 'duet');
+      }
+
+      syncStateAndMarquee();
+    };
+
+    plateLeft?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMode('solo');
+    });
+
+    plateRight?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMode('duet');
+    });
+
+    modeToggle?.addEventListener('click', () => {
+      const newMode = this.state.connectionMode === 'solo' ? 'duet' : 'solo';
+      setMode(newMode);
     });
 
     let coinCredited = false;
@@ -129,7 +226,6 @@ export class LandingView implements AppView {
     // Start action
     const startAction = () => {
       if (!coinCredited) {
-        // Auto credit coin if clicking curtain or direct start
         insertCoin();
         this.audio.playTypewriter();
         setTimeout(() => {
@@ -142,7 +238,7 @@ export class LandingView implements AppView {
     };
 
     const proceedStart = () => {
-      if (this.state.boothMode === 'duet') {
+      if (this.state.connectionMode === 'duet') {
         const roomCode = `room-${Math.random().toString(36).substring(2, 9)}`;
         this.state.duetRoomId = roomCode;
         this.state.duetRole = 'host';

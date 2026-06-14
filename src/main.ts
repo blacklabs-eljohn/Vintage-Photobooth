@@ -58,6 +58,8 @@ class AppController {
       },
       finalStripUrl: '',
       boothMode: 'strip',
+      boothFormat: 'strip',
+      connectionMode: 'solo',
       humEnabled: true,
       soundEnabled: true,
       crtEnabled: true,
@@ -76,6 +78,9 @@ class AppController {
     if (roomParam) {
       this.state.duetRoomId = roomParam;
       this.state.duetRole = 'partner';
+      this.state.connectionMode = 'duet';
+      this.state.boothMode = 'duet';
+      this.state.boothFormat = 'strip'; // updated during subscription
       this.state.currentView = 'duet';
     }
 

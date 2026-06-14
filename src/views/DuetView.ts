@@ -396,11 +396,22 @@ export class DuetView implements AppView {
             </div>
           </div>
 
-          <!-- Indicator bulbs row (3 bulbs) -->
+          <!-- Indicator bulbs row -->
           <div class="duet-indicators-row">
-            <div class="indicator-bulb" id="bulb-0" title="Photo 1"></div>
-            <div class="indicator-bulb" id="bulb-1" title="Photo 2"></div>
-            <div class="indicator-bulb" id="bulb-2" title="Photo 3"></div>
+            ${(() => {
+              const format = this.state.boothFormat || 'strip';
+              let totalShots = 3;
+              if (format === 'polaroid' || format === 'cinematic') {
+                totalShots = 1;
+              } else if (format === 'postcard') {
+                totalShots = 4;
+              }
+              let html = '';
+              for (let i = 0; i < totalShots; i++) {
+                html += `<div class="indicator-bulb" id="bulb-${i}" title="Photo ${i + 1}"></div>`;
+              }
+              return html;
+            })()}
           </div>
 
           <!-- Status LED banner -->
@@ -498,7 +509,8 @@ export class DuetView implements AppView {
   }
 
   private updateIndicators() {
-    for (let i = 0; i < 3; i++) {
+    const total = this.getRequiredShots();
+    for (let i = 0; i < total; i++) {
       const bulb = this.container?.querySelector(`#bulb-${i}`) as HTMLElement;
       if (bulb) {
         if (this.currentFrameIndex === i) {
@@ -590,7 +602,8 @@ export class DuetView implements AppView {
       }
 
       this.timeoutId = setTimeout(() => {
-        if (this.currentFrameIndex < 2) {
+        const maxPhotos = this.getRequiredShots();
+        if (this.currentFrameIndex < maxPhotos - 1) {
           this.currentFrameIndex++;
           this.updateIndicators();
           
@@ -603,7 +616,7 @@ export class DuetView implements AppView {
           const placeholderText = this.container?.querySelector('#remotePlaceholderText') as HTMLElement;
           if (placeholderText) placeholderText.textContent = 'Waiting for photo...';
         } else {
-          // Finished all 3 shots. Proceed to developing
+          // Finished all shots. Proceed to developing
           this.transitionToState('stitching');
         }
       }, 2000);
@@ -621,8 +634,9 @@ export class DuetView implements AppView {
 
       // Query database directly to secure all frames (in case realtime update had a lag)
       const allFrames = await fetchDuetFrames(this.roomId);
+      const total = this.getRequiredShots();
 
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < total; i++) {
         const hostFrame = allFrames.find((f) => f.user_id === 'host' && f.frame_index === i);
         const partnerFrame = allFrames.find((f) => f.user_id === 'partner' && f.frame_index === i);
 
@@ -640,7 +654,7 @@ export class DuetView implements AppView {
 
       // Merge each pair side-by-side using Canvas
       const mergedUrls: string[] = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < total; i++) {
         const merged = await this.mergeFramesSideBySide(hostFrames[i], partnerFrames[i]);
         mergedUrls.push(merged);
       }
@@ -750,6 +764,18 @@ export class DuetView implements AppView {
       this.timeoutId = setTimeout(resolve, ms);
     });
   }
+
+  private getRequiredShots(): number {
+    const format = this.state.boothFormat || 'strip';
+    if (format === 'polaroid' || format === 'cinematic') {
+      return 1;
+    }
+    if (format === 'strip') return 3;
+    if (format === 'postcard') return 4;
+    return 3;
+  }
+
+
 
   private hookReactButtons(container: HTMLElement) {
     const buttons = container.querySelectorAll('.react-btn');

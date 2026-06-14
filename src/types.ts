@@ -8,6 +8,8 @@ export interface AppState {
   stripSettings: StripSettings;
   finalStripUrl: string; // output generated image url
   boothMode: 'strip' | 'polaroid' | 'duet';
+  boothFormat?: 'strip' | 'polaroid' | 'cinematic' | 'postcard';
+  connectionMode?: 'solo' | 'duet';
   duetRoomId?: string;
   duetRole?: 'host' | 'partner';
   humEnabled?: boolean;

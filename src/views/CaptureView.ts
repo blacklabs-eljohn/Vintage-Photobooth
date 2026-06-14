@@ -30,14 +30,20 @@ export class CaptureView implements AppView {
     // Clean old captures
     this.state.capturedFrames = [];
 
-    const isPolaroid = this.state.boothMode === 'polaroid';
-    const bulbsHtml = isPolaroid
-      ? `<div class="indicator-bulb" id="bulb-0" title="Photo 1" style="width: 14px; height: 14px; border-radius: 50%;"></div>`
-      : `
-        <div class="indicator-bulb" id="bulb-0" title="Photo 1"></div>
-        <div class="indicator-bulb" id="bulb-1" title="Photo 2"></div>
-        <div class="indicator-bulb" id="bulb-2" title="Photo 3"></div>
-      `;
+    const format = this.state.boothFormat || 'strip';
+    let totalShots = 3;
+    if (format === 'polaroid' || format === 'cinematic') {
+      totalShots = 1;
+    } else if (format === 'strip') {
+      totalShots = 3;
+    } else if (format === 'postcard') {
+      totalShots = 4;
+    }
+
+    let bulbsHtml = '';
+    for (let i = 0; i < totalShots; i++) {
+      bulbsHtml += `<div class="indicator-bulb" id="bulb-${i}" title="Photo ${i + 1}"></div>`;
+    }
 
     container.innerHTML = `
       <div class="view-panel">
@@ -51,6 +57,9 @@ export class CaptureView implements AppView {
             
             <!-- Grid Lines overlay -->
             <div class="overlay-grid"></div>
+            
+            <!-- Widescreen Cinematic bars -->
+            ${format === 'cinematic' ? '<div class="cinematic-letterbox-top"></div><div class="cinematic-letterbox-bottom"></div>' : ''}
  
             <!-- Header UI over camera -->
             <div class="viewfinder-overlay">
@@ -192,8 +201,15 @@ export class CaptureView implements AppView {
     };
     this.timecodeInterval = setInterval(updateTimecode, 41.67);
 
-    const isPolaroid = this.state.boothMode === 'polaroid';
-    const numPhotos = isPolaroid ? 1 : 3;
+    const format = this.state.boothFormat || 'strip';
+    let numPhotos = 3;
+    if (format === 'polaroid' || format === 'cinematic') {
+      numPhotos = 1;
+    } else if (format === 'strip') {
+      numPhotos = 3;
+    } else if (format === 'postcard') {
+      numPhotos = 4;
+    }
 
     for (let frame = 0; frame < numPhotos; frame++) {
       if (!this.captureActive) break;
@@ -204,7 +220,7 @@ export class CaptureView implements AppView {
         currentBulb.className = 'indicator-bulb capturing';
       }
 
-      boothInstructions.innerText = isPolaroid ? 'Strike Pose!' : `Strike Pose ${frame + 1}!`;
+      boothInstructions.innerText = numPhotos === 1 ? 'Strike Pose!' : `Strike Pose ${frame + 1}!`;
 
       // 3-second countdown per frame
       const viewfinderLightLeak = container.querySelector('#viewfinderLightLeak') as HTMLElement;
@@ -256,7 +272,7 @@ export class CaptureView implements AppView {
       await this.wait(150);
       flashOverlay.classList.remove('active');
 
-      boothInstructions.innerText = isPolaroid ? 'Pose Captured' : `Pose ${frame + 1} Captured`;
+      boothInstructions.innerText = numPhotos === 1 ? 'Pose Captured' : `Pose ${frame + 1} Captured`;
 
       // Pose transition delay (1.5 seconds)
       if (frame < numPhotos - 1) {

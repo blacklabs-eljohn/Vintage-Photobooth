@@ -17,24 +17,54 @@ export class StripGenerator {
   public static async generateStrip(
     imageUrls: string[],
     settings: StripSettings,
-    boothMode: 'strip' | 'polaroid' = 'strip'
+    boothFormat: 'strip' | 'polaroid' | 'cinematic' | 'postcard' = 'strip'
   ): Promise<string> {
+    let finalUrls = [...imageUrls];
+
     const theme = ThemeManager.getTheme(settings.themeId);
-    const numPhotos = imageUrls.length;
-    const isPolaroid = boothMode === 'polaroid';
+    const numPhotos = finalUrls.length;
+    const isPolaroid = boothFormat === 'polaroid';
+    const isCinematic = boothFormat === 'cinematic';
+    const isPostcard = boothFormat === 'postcard';
 
     // Dimensions for high-res output
-    const canvasWidth = isPolaroid ? 700 : 800;
-    const margin = isPolaroid ? 45 : 50;
-    const photoWidth = canvasWidth - margin * 2;
-    const photoHeight = isPolaroid ? photoWidth : Math.round(photoWidth * (3 / 4)); // Square 1:1 vs 4:3 aspect ratio
-    const gap = isPolaroid ? 0 : 40;
-    const footerHeight = isPolaroid ? 170 : 220; // Extra room at the bottom for typography/signatures
+    let canvasWidth = 800;
+    let canvasHeight = 600;
+    let margin = 50;
+    let photoWidth = 700;
+    let photoHeight = 525;
+    let gap = 40;
+    let footerHeight = 220;
 
-    // Calculate total canvas height
-    const canvasHeight = isPolaroid
-      ? margin + photoHeight + footerHeight // e.g., 45 + 610 + 170 = 825px
-      : margin + numPhotos * photoHeight + (numPhotos - 1) * gap + footerHeight;
+    if (isPolaroid) {
+      canvasWidth = 700;
+      margin = 45;
+      photoWidth = canvasWidth - margin * 2;
+      photoHeight = photoWidth;
+      gap = 0;
+      footerHeight = 170;
+      canvasHeight = margin + photoHeight + footerHeight;
+    } else if (isCinematic) {
+      canvasWidth = 800;
+      margin = 50;
+      photoWidth = 700;
+      photoHeight = 394; // 16:9
+      gap = 0;
+      footerHeight = 130;
+      canvasHeight = 100 + photoHeight + footerHeight; // Extra room for sprockets
+    } else if (isPostcard) {
+      canvasWidth = 800;
+      canvasHeight = 800;
+      footerHeight = 150;
+    } else {
+      canvasWidth = 800;
+      margin = 50;
+      photoWidth = 700;
+      photoHeight = 525;
+      gap = 40;
+      footerHeight = 220;
+      canvasHeight = margin + numPhotos * photoHeight + (numPhotos - 1) * gap + footerHeight;
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
@@ -89,103 +119,186 @@ export class StripGenerator {
 
     // 2. Load and Draw Photos sequentially
     const loadedImages = await Promise.all(
-      imageUrls.map((url) => this.loadImage(url))
+      finalUrls.map((url) => this.loadImage(url))
     );
 
-    for (let i = 0; i < loadedImages.length; i++) {
-      const img = loadedImages[i];
-      const yPos = margin + i * (photoHeight + gap);
-
-      // Save context state for potential transforms / clipping
+    if (isPostcard) {
+      // Postcard 2x2 grid layout
+      const gridCoords = [
+        { x: 50, y: 50 },
+        { x: 410, y: 50 },
+        { x: 50, y: 345 },
+        { x: 410, y: 345 }
+      ];
+      for (let i = 0; i < Math.min(loadedImages.length, 4); i++) {
+        const img = loadedImages[i];
+        const { x, y } = gridCoords[i];
+        
+        ctx.save();
+        ctx.filter = theme.canvasFilter;
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(x, y, 340, 255);
+        this.drawImageProp(ctx, img, x, y, 340, 255, 0.5, 0.5);
+        ctx.filter = 'none';
+        
+        if (settings.lightLeaks) {
+          const leakGrad = ctx.createRadialGradient(x + 170, y + 127, 0, x + 170, y + 127, 250);
+          leakGrad.addColorStop(0, 'rgba(255, 90, 0, 0.4)');
+          leakGrad.addColorStop(0.3, 'rgba(255, 170, 0, 0.15)');
+          leakGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          ctx.fillStyle = leakGrad;
+          ctx.fillRect(x, y, 340, 255);
+          ctx.restore();
+        }
+        
+        if (settings.dustAndScratches) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+          for (let d = 0; d < 4; d++) {
+            ctx.fillRect(x + Math.random() * 340, y + Math.random() * 255, 2, 2);
+          }
+          ctx.restore();
+        }
+        
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, 340, 255);
+        
+        if (theme.overlayColor && theme.overlayBlendMode) {
+          ctx.save();
+          ctx.globalCompositeOperation = theme.overlayBlendMode as GlobalCompositeOperation;
+          ctx.fillStyle = theme.overlayColor;
+          ctx.fillRect(x, y, 340, 255);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+    } else if (isCinematic) {
+      // 16:9 widescreen cinematic
+      const img = loadedImages[0];
+      const yPos = 100; // room for top sprockets
+      const phWidth = 700;
+      const phHeight = 394;
+      
       ctx.save();
-
-      // Apply vintage filters directly onto canvas context
       ctx.filter = theme.canvasFilter;
-
-      // Draw photo frame shadow (subtle stroke first)
       ctx.fillStyle = '#000000';
-      ctx.fillRect(margin, yPos, photoWidth, photoHeight);
-
-      // Draw photo
-      // To fill the 4:3 frame without distortion, crop/scale if needed
-      this.drawImageProp(ctx, img, margin, yPos, photoWidth, photoHeight, 0.5, 0.5);
-
-      // Reset filter for overlays
+      ctx.fillRect(50, yPos, phWidth, phHeight);
+      this.drawImageProp(ctx, img, 50, yPos, phWidth, phHeight, 0.5, 0.5);
       ctx.filter = 'none';
-
-      // Draw light leak overlay on frame if enabled
+      
       if (settings.lightLeaks) {
-        const leakGrad = ctx.createRadialGradient(
-          margin + photoWidth * 0.1, yPos + photoHeight * 0.9, 0,
-          margin + photoWidth * 0.1, yPos + photoHeight * 0.9, photoWidth * 0.75
-        );
-        leakGrad.addColorStop(0, 'rgba(255, 90, 0, 0.45)');
+        const leakGrad = ctx.createRadialGradient(200, yPos + 200, 0, 200, yPos + 200, 400);
+        leakGrad.addColorStop(0, 'rgba(255, 90, 0, 0.4)');
         leakGrad.addColorStop(0.3, 'rgba(255, 170, 0, 0.15)');
         leakGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
         ctx.fillStyle = leakGrad;
-        ctx.fillRect(margin, yPos, photoWidth, photoHeight);
+        ctx.fillRect(50, yPos, phWidth, phHeight);
         ctx.restore();
       }
-
-      // Draw dust and scratches overlay on frame if enabled
+      
       if (settings.dustAndScratches) {
         ctx.save();
-        // 8 black/dark dust specs
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        for (let d = 0; d < 8; d++) {
-          const dx = margin + Math.random() * photoWidth;
-          const dy = yPos + Math.random() * photoHeight;
-          const dsize = Math.random() * 2 + 1;
-          ctx.fillRect(dx, dy, dsize, dsize);
-        }
-        // 4 white dust specs
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        for (let d = 0; d < 4; d++) {
-          const dx = margin + Math.random() * photoWidth;
-          const dy = yPos + Math.random() * photoHeight;
-          const dsize = Math.random() * 1.5 + 1;
-          ctx.fillRect(dx, dy, dsize, dsize);
-        }
-        // 2 dark vertical scratches
-        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-        ctx.lineWidth = 1;
-        for (let s = 0; s < 2; s++) {
-          const sx = margin + Math.random() * photoWidth;
-          ctx.beginPath();
-          ctx.moveTo(sx, yPos);
-          ctx.lineTo(sx + (Math.random() * 4 - 2), yPos + photoHeight);
-          ctx.stroke();
-        }
-        // 1 white vertical scratch
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-        for (let s = 0; s < 1; s++) {
-          const sx = margin + Math.random() * photoWidth;
-          ctx.beginPath();
-          ctx.moveTo(sx, yPos);
-          ctx.lineTo(sx + (Math.random() * 2 - 1), yPos + photoHeight);
-          ctx.stroke();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        for (let d = 0; d < 6; d++) {
+          ctx.fillRect(50 + Math.random() * phWidth, yPos + Math.random() * phHeight, 2, 2);
         }
         ctx.restore();
       }
-
-      // Draw subtle shadow inside the image frame to simulate depth
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
       ctx.lineWidth = 4;
-      ctx.strokeRect(margin, yPos, photoWidth, photoHeight);
-
-      // Draw subtle overlay color wash if defined
+      ctx.strokeRect(50, yPos, phWidth, phHeight);
+      
       if (theme.overlayColor && theme.overlayBlendMode) {
         ctx.save();
         ctx.globalCompositeOperation = theme.overlayBlendMode as GlobalCompositeOperation;
         ctx.fillStyle = theme.overlayColor;
-        ctx.fillRect(margin, yPos, photoWidth, photoHeight);
+        ctx.fillRect(50, yPos, phWidth, phHeight);
+        ctx.restore();
+      }
+      ctx.restore();
+      
+      // Draw Movie Subtitles overlay inside frame
+      if (settings.caption) {
+        ctx.save();
+        ctx.fillStyle = '#ffea00';
+        ctx.font = 'bold 24px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(`"${settings.caption}"`, canvasWidth / 2, yPos + phHeight - 35);
         ctx.restore();
       }
 
-      ctx.restore();
+      // Draw black sprocket cells
+      ctx.fillStyle = '#0f0f12';
+      const holeWidth = 16;
+      const holeHeight = 12;
+      const holeSpacing = 28;
+      const holeRadius = 2.5;
+      for (let x = 30; x < canvasWidth - 30; x += holeSpacing) {
+        this.drawRoundedRect(ctx, x, 18, holeWidth, holeHeight, holeRadius);
+      }
+      for (let x = 30; x < canvasWidth - 30; x += holeSpacing) {
+        this.drawRoundedRect(ctx, x, canvasHeight - 30, holeWidth, holeHeight, holeRadius);
+      }
+    } else {
+      // Classic vertical photo strip / polaroid cards
+      for (let i = 0; i < loadedImages.length; i++) {
+        const img = loadedImages[i];
+        const yPos = margin + i * (photoHeight + gap);
+
+        ctx.save();
+        ctx.filter = theme.canvasFilter;
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(margin, yPos, photoWidth, photoHeight);
+        this.drawImageProp(ctx, img, margin, yPos, photoWidth, photoHeight, 0.5, 0.5);
+        ctx.filter = 'none';
+
+        if (settings.lightLeaks) {
+          const leakGrad = ctx.createRadialGradient(
+            margin + photoWidth * 0.1, yPos + photoHeight * 0.9, 0,
+            margin + photoWidth * 0.1, yPos + photoHeight * 0.9, photoWidth * 0.75
+          );
+          leakGrad.addColorStop(0, 'rgba(255, 90, 0, 0.45)');
+          leakGrad.addColorStop(0.3, 'rgba(255, 170, 0, 0.15)');
+          leakGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          ctx.fillStyle = leakGrad;
+          ctx.fillRect(margin, yPos, photoWidth, photoHeight);
+          ctx.restore();
+        }
+
+        if (settings.dustAndScratches) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          for (let d = 0; d < 8; d++) {
+            ctx.fillRect(margin + Math.random() * photoWidth, yPos + Math.random() * photoHeight, 2, 2);
+          }
+          ctx.restore();
+        }
+
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(margin, yPos, photoWidth, photoHeight);
+
+        if (theme.overlayColor && theme.overlayBlendMode) {
+          ctx.save();
+          ctx.globalCompositeOperation = theme.overlayBlendMode as GlobalCompositeOperation;
+          ctx.fillStyle = theme.overlayColor;
+          ctx.fillRect(margin, yPos, photoWidth, photoHeight);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
     }
 
     // 3. Draw Typography / Footer Area
@@ -194,8 +307,8 @@ export class StripGenerator {
     // Wait for fonts to ensure they render properly on canvas
     await document.fonts.ready;
 
-    // Draw Caption
-    if (settings.caption) {
+    // Draw Caption (only if not cinematic format)
+    if (settings.caption && !isCinematic) {
       ctx.fillStyle = textColor;
       ctx.font = '36px "Special Elite", Courier, monospace';
       ctx.textAlign = 'center';
@@ -212,7 +325,7 @@ export class StripGenerator {
     }
 
     // Draw Location (left bottom)
-    if (settings.location) {
+    if (settings.location && !isCinematic) {
       ctx.fillStyle = settings.borderStyle === 'charcoal' ? '#a5afbe' : '#7d7570';
       ctx.font = isPolaroid ? '22px "Special Elite", Courier, monospace' : '24px "Special Elite", Courier, monospace';
       ctx.textAlign = 'left';
@@ -220,7 +333,7 @@ export class StripGenerator {
     }
 
     // Draw Date Stamp (right bottom)
-    if (settings.showDate && settings.dateStr) {
+    if (settings.showDate && settings.dateStr && !isCinematic) {
       ctx.font = isPolaroid ? '24px "Share Tech Mono", monospace' : '28px "Share Tech Mono", monospace';
       // Classic orange camera LED stamp
       ctx.fillStyle = '#ff6b00';
@@ -234,6 +347,18 @@ export class StripGenerator {
       
       // Reset shadows
       ctx.shadowBlur = 0;
+    }
+
+    // Draw Cinematic meta footer
+    if (isCinematic) {
+      ctx.fillStyle = settings.borderStyle === 'charcoal' ? '#a5afbe' : '#7d7570';
+      ctx.font = '16px "Special Elite", Courier, monospace';
+      ctx.textAlign = 'center';
+      const metaParts = [
+        settings.location ? `📍 ${settings.location}` : '',
+        settings.showDate && settings.dateStr ? `📅 ${settings.dateStr}` : ''
+      ].filter(Boolean).join('   |   ');
+      ctx.fillText(metaParts, canvasWidth / 2, footerYStart + 50);
     }
 
     // Draw retro stripes at the bottom if disco style selected
@@ -360,5 +485,29 @@ export class StripGenerator {
     }
     lines.push(currentLine);
     return lines;
+  }
+
+
+
+  private static drawRoundedRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
   }
 }
