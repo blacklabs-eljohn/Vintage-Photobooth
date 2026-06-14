@@ -218,57 +218,106 @@ export class AudioManager {
       const ctx = this.initContext();
       const now = ctx.currentTime;
 
-      // 1. Initial metallic clinks (metal strike)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1500, now);
-      osc1.frequency.exponentialRampToValueAtTime(800, now + 0.05);
-      gain1.gain.setValueAtTime(0.12, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.06);
+      // Helper to generate a short metallic impact (clink) with inharmonic frequencies
+      const playImpact = (time: number, freq: number, duration: number, volume: number) => {
+        const freqs = [freq, freq * 1.48, freq * 2.23, freq * 3.14];
+        const oscs: OscillatorNode[] = [];
+        const mixGain = ctx.createGain();
+        mixGain.gain.setValueAtTime(0, time);
+        mixGain.gain.linearRampToValueAtTime(volume, time + 0.002);
+        mixGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
-      // Second clink (impact delay 60ms)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1200, now + 0.06);
-      osc2.frequency.exponentialRampToValueAtTime(400, now + 0.12);
-      gain2.gain.setValueAtTime(0.08, now + 0.06);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.06);
-      osc2.stop(now + 0.13);
+        mixGain.connect(ctx.destination);
 
-      // 2. Coin sliding drop / clunk (delay 150ms)
-      const osc3 = ctx.createOscillator();
-      const gain3 = ctx.createGain();
-      osc3.type = 'triangle';
-      osc3.frequency.setValueAtTime(150, now + 0.15);
-      osc3.frequency.exponentialRampToValueAtTime(80, now + 0.28);
-      gain3.gain.setValueAtTime(0.25, now + 0.15);
-      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-      osc3.connect(gain3);
-      gain3.connect(ctx.destination);
-      osc3.start(now + 0.15);
-      osc3.stop(now + 0.3);
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f + (idx * 3), time);
+          osc.connect(mixGain);
+          osc.start(time);
+          osc.stop(time + duration + 0.05);
+          oscs.push(osc);
+        });
+      };
 
-      // 3. Metallic ring chime (coins rattling, delay 250ms)
-      const osc4 = ctx.createOscillator();
-      const gain4 = ctx.createGain();
-      osc4.type = 'sine';
-      osc4.frequency.setValueAtTime(1800, now + 0.25);
-      osc4.frequency.exponentialRampToValueAtTime(1600, now + 0.45);
-      gain4.gain.setValueAtTime(0.05, now + 0.25);
-      gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      osc4.connect(gain4);
-      gain4.connect(ctx.destination);
-      osc4.start(now + 0.25);
-      osc4.stop(now + 0.5);
+      // Helper to play a short noise scraping sound (slither/drop)
+      const playScrape = (time: number, duration: number, startFreq: number, endFreq: number, volume: number) => {
+        const bufferSize = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noiseNode = ctx.createBufferSource();
+        noiseNode.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(startFreq, time);
+        filter.frequency.exponentialRampToValueAtTime(endFreq, time + duration);
+        filter.Q.setValueAtTime(3, time);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(volume, time + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        noiseNode.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        noiseNode.start(time);
+        noiseNode.stop(time + duration + 0.05);
+      };
+
+      // Sequence of the coin's mechanical path:
+
+      // 1. Initial slot insertion strike (Impact 1)
+      playImpact(now, 1500, 0.08, 0.15);
+      // High-pitch noise scrape representing coin edges brushing against slot
+      playScrape(now, 0.06, 4000, 2000, 0.08);
+
+      // 2. Sliding down the metal chute
+      playScrape(now + 0.05, 0.22, 2200, 800, 0.04);
+
+      // 3. Middle mechanical clicks (coin tumbling past slot gate balance arms)
+      playImpact(now + 0.09, 1100, 0.04, 0.06);
+      playImpact(now + 0.18, 950, 0.04, 0.05);
+
+      // 4. Opto/trigger switch mechanical click
+      const switchOsc = ctx.createOscillator();
+      const switchGain = ctx.createGain();
+      switchOsc.type = 'triangle';
+      switchOsc.frequency.setValueAtTime(800, now + 0.22);
+      switchOsc.frequency.setValueAtTime(400, now + 0.24);
+      switchGain.gain.setValueAtTime(0.02, now + 0.22);
+      switchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+      switchOsc.connect(switchGain);
+      switchGain.connect(ctx.destination);
+      switchOsc.start(now + 0.22);
+      switchOsc.stop(now + 0.27);
+
+      // 5. Final thud & bell ring inside the drawer (Impact 4)
+      const thudTime = now + 0.28;
+
+      // Dull low mechanical thump
+      const thudOsc = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thudOsc.type = 'triangle';
+      thudOsc.frequency.setValueAtTime(110, thudTime);
+      thudOsc.frequency.exponentialRampToValueAtTime(45, thudTime + 0.15);
+      thudGain.gain.setValueAtTime(0.2, thudTime);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, thudTime + 0.15);
+      thudOsc.connect(thudGain);
+      thudGain.connect(ctx.destination);
+      thudOsc.start(thudTime);
+      thudOsc.stop(thudTime + 0.2);
+
+      // Final rattling metallic chimes/rings (different coin resonance)
+      playImpact(thudTime, 1300, 0.25, 0.12);
+      playImpact(thudTime + 0.04, 1850, 0.18, 0.07);
+
     } catch (e) {
       console.warn('Failed to play coin drop sound:', e);
     }
