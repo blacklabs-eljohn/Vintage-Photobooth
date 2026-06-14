@@ -413,7 +413,7 @@ export class CustomizeView implements AppView {
         const finalUrl = await StripGenerator.generateStrip(
           this.state.capturedFrames,
           this.state.stripSettings,
-          this.state.boothMode
+          this.state.boothMode as 'strip' | 'polaroid'
         );
         this.state.finalStripUrl = finalUrl;
         this.onViewChange('result');

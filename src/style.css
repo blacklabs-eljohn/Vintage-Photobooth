@@ -480,7 +480,7 @@ body::after {
   background: #0a0c10;
   border: 3px solid #3a3f4b;
   border-radius: 6px;
-  width: 84px;
+  width: 110px;
   padding: 6px;
   margin-top: 14px;
   display: flex;
@@ -513,11 +513,11 @@ body::after {
 
 .tablet-screen-title {
   font-family: var(--font-led);
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   color: #64b5f6;
   text-shadow: 0 0 4px rgba(100, 181, 246, 0.6);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   text-align: center;
   user-select: none;
 }
@@ -537,8 +537,8 @@ body::after {
   border-radius: 4px;
   color: #8899aa;
   font-family: var(--font-sans);
-  font-size: 0.5rem;
-  padding: 5px 4px;
+  font-size: 0.58rem;
+  padding: 6px 4px;
   cursor: pointer;
   transition: all 0.25s ease;
   text-align: center;
@@ -572,7 +572,7 @@ body::after {
 
 .tablet-marquee {
   font-family: var(--font-led);
-  font-size: 0.38rem;
+  font-size: 0.45rem;
   color: #4ade80;
   text-shadow: 0 0 3px rgba(74, 222, 128, 0.5);
   text-align: center;
@@ -640,36 +640,7 @@ body::after {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Paper dispenser tray */
-.paper-dispenser {
-  background: #191b1f;
-  border: 2px solid #23252a;
-  border-top-color: #5a5f6b;
-  border-radius: 3px;
-  width: 90px;
-  height: 45px;
-  position: relative;
-  margin-top: -6px;
-  box-shadow: inset 0 3px 8px rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-}
 
-/* tiny photo hanging out */
-.paper-dispenser::after {
-  content: "";
-  position: absolute;
-  top: 15px;
-  width: 60px;
-  height: 45px;
-  background-color: #faf6f0;
-  border: 1px solid #dcd6cd;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  transform: rotate(-3deg);
-  border-radius: 1px;
-  background-image: linear-gradient(to bottom, #d8d0c5 20%, transparent 20%, transparent 40%, #d8d0c5 40%, #d8d0c5 60%, transparent 60%, transparent 80%, #d8d0c5 80%);
-  background-size: 100% 10px;
-}
 /* Right cabinet panel (Draped curtains doorway) */
 .cabinet-panel-right {
   width: 55%;
@@ -1994,4 +1965,276 @@ input:focus-visible {
 .console-action-row button {
   flex: 1;
 }
+
+/* ==========================================================================
+   LDR Duet Photobooth Styles
+   ========================================================================== */
+.lobby-share-box {
+  background: #0f1013;
+  border: 1px solid #5c3d2e;
+  border-radius: 6px;
+  padding: 12px;
+  width: 100%;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.lobby-link-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.55rem;
+  font-weight: bold;
+  color: hsl(var(--accent-beige));
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.lobby-link-input-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.lobby-link-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ccd6e0;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  outline: none;
+}
+
+.lobby-link-input:focus {
+  border-color: hsl(var(--accent-brown));
+}
+
+.lobby-status-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.presence-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.presence-indicator .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  transition: all 0.3s ease;
+}
+
+.presence-indicator .status-dot.active {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.presence-label {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: #ccd6e0;
+}
+
+.duet-viewfinders {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.duet-viewfinder-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewfinder-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.55rem;
+  font-weight: bold;
+  color: hsl(var(--accent-beige));
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.duet-video-container {
+  background: #090a0c;
+  border: 2px solid #363a42;
+  border-radius: 6px;
+  aspect-ratio: 3/4; /* Styled to match vertical column frame */
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+.duet-video-container video,
+.duet-video-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remote-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #4b5563;
+  text-align: center;
+  padding: 8px;
+}
+
+.placeholder-icon {
+  color: #5c3d2e;
+}
+
+.placeholder-text {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.duet-indicators-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.duet-indicators-row .indicator-bulb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #374151;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+}
+
+.duet-indicators-row .indicator-bulb.capturing {
+  background: #eab308;
+  box-shadow: 0 0 10px #eab308, inset 0 1px 2px rgba(255,255,255,0.4);
+  animation: bulb-pulse 0.8s infinite alternate;
+}
+
+.duet-indicators-row .indicator-bulb.active {
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e;
+}
+
+@keyframes bulb-pulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   Cabinet Console Duet Select & File Intake Slot (Design A)
+   ========================================================================== */
+.tablet-mode-card.active-duet {
+  background: rgba(59, 130, 246, 0.15); /* Light neon blue tint */
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5), inset 0 0 6px rgba(59, 130, 246, 0.15);
+  text-shadow: 0 0 3px rgba(59, 130, 246, 0.6);
+}
+
+.cabinet-file-slot {
+  background: linear-gradient(to bottom, #d4af37, #aa7c11);
+  border: 2px solid #5c3d2e;
+  border-radius: 4px;
+  width: 96px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 
+    0 3px 6px rgba(0,0,0,0.4),
+    inset 0 1px 2px rgba(255,255,255,0.4);
+  transition: all 0.2s ease;
+  user-select: none;
+  margin-bottom: 4px;
+}
+
+.file-slot-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.45rem;
+  font-weight: 900;
+  color: #3e2723;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.file-slot-mouth {
+  width: 80px;
+  height: 8px;
+  background: #090a0c;
+  border-radius: 1px;
+  border: 1px solid #5c3d2e;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Slot laser light glow effect on hover */
+.cabinet-file-slot:hover {
+  background: linear-gradient(to bottom, #ffe066, #d4af37);
+  box-shadow: 
+    0 4px 10px rgba(212, 175, 55, 0.4),
+    inset 0 1px 2px rgba(255,255,255,0.6);
+}
+
+.cabinet-file-slot:hover .file-slot-mouth {
+  border-color: #ffe066;
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.9),
+    0 0 10px rgba(255, 224, 102, 0.9);
+}
+
+.cabinet-file-slot:hover .file-slot-label {
+  color: #1a0f00;
+}
+
+
 

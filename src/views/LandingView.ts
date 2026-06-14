@@ -18,6 +18,8 @@ export class LandingView implements AppView {
 
   public render(container: HTMLElement) {
     const isStrip = this.state.boothMode === 'strip';
+    const isPolaroid = this.state.boothMode === 'polaroid';
+    const isDuet = this.state.boothMode === 'duet';
 
     container.innerHTML = `
       <div class="view-panel">
@@ -36,7 +38,8 @@ export class LandingView implements AppView {
                 <span class="tablet-screen-title">Select Mode</span>
                 <div class="tablet-mode-cards">
                   <button class="tablet-mode-card ${isStrip ? 'active-strip' : ''}" id="modeStripBtn" title="3-Shot Photostrip">🎞️ Strip</button>
-                  <button class="tablet-mode-card ${!isStrip ? 'active-polaroid' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
+                  <button class="tablet-mode-card ${isPolaroid ? 'active-polaroid' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
+                  <button class="tablet-mode-card ${isDuet ? 'active-duet' : ''}" id="modeDuetBtn" title="LDR Partner Duet">👥 Duet Link</button>
                 </div>
                 <span class="tablet-marquee">Tap to choose</span>
               </div>
@@ -47,8 +50,11 @@ export class LandingView implements AppView {
                 <span class="arcade-btn-label">START</span>
               </div>
  
-              <!-- Photo Dispenser tray -->
-              <div class="paper-dispenser" title="Photo Strip Exit"></div>
+              <!-- File Intake Slot (Uploader) at the bottom -->
+              <div class="cabinet-file-slot" id="fileIntakeSlot" title="Insert Digital Negatives (Upload)">
+                <span class="file-slot-label">FILE INTAKE</span>
+                <div class="file-slot-mouth"></div>
+              </div>
             </div>
  
             <!-- Right panel: Draped curtains doorway -->
@@ -57,12 +63,6 @@ export class LandingView implements AppView {
               <div class="booth-shadow-bottom"></div>
             </div>
           </div>
- 
-          <!-- Uploader Button -->
-          <button id="uploadPhotosBtn" class="btn-secondary cabinet-uploader-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Photos Instead
-          </button>
           
           <input type="file" id="hiddenFileInput" class="hidden-file-input" multiple accept="image/*" />
         </div>
@@ -72,12 +72,13 @@ export class LandingView implements AppView {
     // Hook elements
     const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
-    const uploadPhotosBtn = container.querySelector('#uploadPhotosBtn');
+    const fileIntakeSlot = container.querySelector('#fileIntakeSlot');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
     const tabletMarquee = container.querySelector('.tablet-marquee') as HTMLElement;
 
     const modeStripBtn = container.querySelector('#modeStripBtn') as HTMLButtonElement;
     const modePolaroidBtn = container.querySelector('#modePolaroidBtn') as HTMLButtonElement;
+    const modeDuetBtn = container.querySelector('#modeDuetBtn') as HTMLButtonElement;
 
     // Mode Selector actions on the tablet console
     modeStripBtn?.addEventListener('click', () => {
@@ -86,6 +87,7 @@ export class LandingView implements AppView {
       this.state.boothMode = 'strip';
       modeStripBtn.classList.add('active-strip');
       modePolaroidBtn.classList.remove('active-polaroid');
+      modeDuetBtn.classList.remove('active-duet');
       if (tabletMarquee) tabletMarquee.textContent = '▶ Strip ready';
     });
 
@@ -95,19 +97,38 @@ export class LandingView implements AppView {
       this.state.boothMode = 'polaroid';
       modePolaroidBtn.classList.add('active-polaroid');
       modeStripBtn.classList.remove('active-strip');
+      modeDuetBtn.classList.remove('active-duet');
       if (tabletMarquee) tabletMarquee.textContent = '▶ Polaroid ready';
     });
 
-    // Start action — always available (no coin gate)
+    modeDuetBtn?.addEventListener('click', () => {
+      if (this.state.boothMode === 'duet') return;
+      this.audio.playBeep();
+      this.state.boothMode = 'duet';
+      modeDuetBtn.classList.add('active-duet');
+      modeStripBtn.classList.remove('active-strip');
+      modePolaroidBtn.classList.remove('active-polaroid');
+      if (tabletMarquee) tabletMarquee.textContent = '▶ Duet ready';
+    });
+
+    // Start action — always available
     const startAction = () => {
-      this.audio.playTypewriter();
-      this.onViewChange('camera-setup');
+      if (this.state.boothMode === 'duet') {
+        this.audio.playCoinDrop(); // Play arcade coin sound
+        const roomCode = `room-${Math.random().toString(36).substring(2, 9)}`;
+        this.state.duetRoomId = roomCode;
+        this.state.duetRole = 'host';
+        this.onViewChange('duet' as any);
+      } else {
+        this.audio.playTypewriter();
+        this.onViewChange('camera-setup');
+      }
     };
 
     arcadeStartBtn?.addEventListener('click', startAction);
     cabinetCurtainDoor?.addEventListener('click', startAction);
 
-    uploadPhotosBtn?.addEventListener('click', () => {
+    fileIntakeSlot?.addEventListener('click', () => {
       this.audio.playTypewriter();
       hiddenFileInput?.click();
     });
@@ -117,6 +138,11 @@ export class LandingView implements AppView {
       if (!files || files.length === 0) return;
 
       const isPolaroid = this.state.boothMode === 'polaroid';
+      // Reset duet selection to classic strip upon digital upload triggers
+      if (this.state.boothMode === 'duet') {
+        this.state.boothMode = 'strip';
+      }
+      
       const minRequired = isPolaroid ? 1 : 3;
 
       if (files.length < minRequired) {

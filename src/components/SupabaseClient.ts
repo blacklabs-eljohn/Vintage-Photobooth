@@ -71,3 +71,96 @@ export function subscribeToMomentsChanges(onUpdate: (count: number) => void): ()
     supabase.removeChannel(channel);
   };
 }
+
+/**
+ * Uploads a duet photo frame (as a base64 compressed JPEG data URL) to the database.
+ */
+export async function uploadDuetFrame(
+  roomId: string,
+  role: 'host' | 'partner',
+  frameIndex: number,
+  imageData: string
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('duet_frames').insert({
+      room_id: roomId,
+      user_id: role,
+      frame_index: frameIndex,
+      image_data: imageData,
+    });
+    if (error) {
+      console.warn('Error uploading duet frame to Supabase:', error.message);
+    }
+  } catch (err) {
+    console.warn('Failed to upload duet frame to Supabase:', err);
+  }
+}
+
+/**
+ * Retrieves all frames uploaded for a specific duet room.
+ */
+export async function fetchDuetFrames(roomId: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('duet_frames')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Error fetching duet frames from Supabase:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn('Failed to fetch duet frames from Supabase:', err);
+    return [];
+  }
+}
+
+/**
+ * Subscribes to real-time additions of frames and monitors user presence (join/leave events).
+ */
+export function subscribeToDuetRoom(
+  roomId: string,
+  onNewFrame: (frame: any) => void,
+  onPresenceSync: (presenceState: any) => void
+) {
+  // Subscribe to real-time insertions on the duet_frames table
+  const dbChannel = supabase
+    .channel(`duet-db-${roomId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'duet_frames',
+        filter: `room_id=eq.${roomId}`,
+      },
+      (payload) => {
+        if (payload.new) {
+          onNewFrame(payload.new);
+        }
+      }
+    )
+    .subscribe();
+
+  // Create presence channel to track online statuses
+  const presenceChannel = supabase.channel(`duet-presence-${roomId}`);
+
+  presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = presenceChannel.presenceState();
+      onPresenceSync(state);
+    })
+    .subscribe();
+
+  return {
+    dbChannel,
+    presenceChannel,
+    unsubscribe: () => {
+      supabase.removeChannel(dbChannel);
+      supabase.removeChannel(presenceChannel);
+    },
+  };
+}

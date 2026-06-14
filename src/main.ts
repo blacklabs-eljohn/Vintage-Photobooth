@@ -9,6 +9,7 @@ import { CaptureView } from './views/CaptureView';
 import { CustomizeView } from './views/CustomizeView';
 import { ResultView } from './views/ResultView';
 import { fetchMomentsCount, subscribeToMomentsChanges } from './components/SupabaseClient';
+import { DuetView } from './views/DuetView';
 
 // Initialize Vercel Analytics
 inject();
@@ -65,6 +66,15 @@ class AppController {
     // Render Shared Shell items
     this.renderHeader();
     this.renderFooter();
+
+    // Check for Duet Room query parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+      this.state.duetRoomId = roomParam;
+      this.state.duetRole = 'partner';
+      this.state.currentView = 'duet';
+    }
 
     // Route to initial view
     this.navigateTo(this.state.currentView);
@@ -153,6 +163,18 @@ class AppController {
             () => {
               this.resetSession();
               this.navigateTo('landing');
+            }
+          );
+          break;
+
+        case 'duet':
+          this.currentViewInstance = new DuetView(
+            this.state,
+            this.audio,
+            this.camera,
+            (nextView) => {
+              if (nextView === 'landing') this.navigateTo('landing');
+              else if (nextView === 'customize') this.navigateTo('customize');
             }
           );
           break;
