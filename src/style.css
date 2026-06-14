@@ -2236,5 +2236,404 @@ input:focus-visible {
   color: #1a0f00;
 }
 
+/* Global CRT Screen Filter */
+body.crt-active::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.08) 50%
+  ), linear-gradient(
+    rgba(18, 16, 16, 0.03),
+    rgba(0, 0, 0, 0.03)
+  );
+  background-size: 100% 3px, 100% 100%;
+  z-index: 9998;
+  pointer-events: none;
+  animation: crt-flicker 0.15s infinite;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.995; }
+  50% { opacity: 1; }
+  100% { opacity: 0.99; }
+}
+
+/* Header Retro Switches */
+.retro-console-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px;
+  background: #231d19; /* Wooden console backing */
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 2px solid #5c3d2e;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.05);
+}
+
+.retro-switch-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.retro-switch-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #c5a880;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+/* Brass mechanical toggle slider styling */
+.retro-switch {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 14px;
+}
+
+.retro-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.retro-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #0d0b09;
+  border-radius: 7px;
+  border: 1px solid #3d2a1e;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+  transition: .2s;
+}
+
+.retro-slider:before {
+  position: absolute;
+  content: "";
+  height: 8px;
+  width: 8px;
+  left: 2px;
+  bottom: 2px;
+  background: radial-gradient(circle, #e6b800 30%, #b38600 100%); /* Gold/brass toggle button */
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  transition: .2s;
+}
+
+.retro-switch input:checked + .retro-slider {
+  background-color: #5c3d2e;
+}
+
+.retro-switch input:checked + .retro-slider:before {
+  transform: translateX(10px);
+  background: radial-gradient(circle, #ffcc00 30%, #e69900 100%);
+  box-shadow: 0 1px 3px rgba(255,204,0,0.4);
+}
+
+/* Mechanical Coin Acceptor (Landing Page) */
+.coin-acceptor-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 10px 0;
+  background: rgba(0,0,0,0.15);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1.5px dashed rgba(255,255,255,0.15);
+  width: 144px;
+}
+
+.coin-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(to bottom, #7f5c40, #5c3d2e);
+  border: 2px solid #23150d;
+  border-radius: 4px;
+  padding: 4px 6px;
+  width: 48px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.coin-slot-header {
+  font-family: var(--font-typewriter);
+  font-size: 0.38rem;
+  font-weight: 800;
+  color: #1a0f08;
+  letter-spacing: 0.2px;
+  margin-bottom: 2px;
+}
+
+.coin-slot-entry {
+  width: 6px;
+  height: 24px;
+  background: #090604;
+  border: 1.5px solid #2e1d13;
+  border-radius: 1px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Glowing red led above coin entry */
+.coin-slot-entry::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: #ff3333;
+  box-shadow: 0 0 4px #ff3333;
+}
+
+.coin-slot.hover {
+  background: linear-gradient(to bottom, #d4af37, #aa8010);
+  border-color: #d4af37;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.7);
+}
+
+.coin-slot.hover .coin-slot-entry {
+  border-color: #ffe066;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.9), 0 0 8px rgba(255, 224, 102, 0.8);
+}
+
+.coin-slot.inserted .coin-slot-entry::before {
+  background-color: #33ff33;
+  box-shadow: 0 0 6px #33ff33;
+}
+
+.coin-slot-val {
+  font-family: var(--font-sans);
+  font-size: 0.45rem;
+  font-weight: bold;
+  color: #ffe8d6;
+  margin-top: 2px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+
+.coin-quarter {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-image: url('./piso.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.4);
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.coin-quarter:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.coin-quarter.dragging {
+  opacity: 0.4;
+  transform: scale(0.9) rotate(15deg);
+}
+
+/* Flashing / blinking green START button */
+.arcade-start-btn.active {
+  animation: pulse-arcade-green 1.2s infinite alternate;
+  cursor: pointer;
+}
+
+.arcade-start-btn:disabled,
+.arcade-start-btn.disabled {
+  background: radial-gradient(circle, #1e3a27 30%, #14271a 100%);
+  border: 4px solid #475569;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  cursor: not-allowed;
+  animation: none;
+  opacity: 0.6;
+}
+
+/* Duet Reactions CSS */
+.duet-react-panel {
+  background: #191c20;
+  border: 2.5px solid #2a2d32;
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.react-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.6rem;
+  color: #8899aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.react-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.react-btn {
+  background: #2d3139;
+  border: 1px solid #424650;
+  border-radius: 4px;
+  color: #cbd5e1;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.react-btn:hover {
+  background: #3e4450;
+  border-color: #64b5f6;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.react-btn:active {
+  transform: translateY(0);
+}
+
+/* Floating Reaction Badges */
+.reaction-overlay-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.reaction-badge {
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  animation: reaction-badge-fly 1.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: none;
+}
+
+.badge-ping {
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  border: 2px solid #60a5fa;
+  color: #fff;
+}
+
+.badge-cheese {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  border: 2px solid #fbbf24;
+  color: #fff;
+}
+
+.badge-wink {
+  background: linear-gradient(135deg, #065f46, #10b981);
+  border: 2px solid #34d399;
+  color: #fff;
+}
+
+.badge-love {
+  background: linear-gradient(135deg, #9f1239, #f43f5e);
+  border: 2px solid #fda4af;
+  color: #fff;
+}
+
+@keyframes reaction-badge-fly {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(40px);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1) translateY(-20px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-60px);
+  }
+}
+
+/* Cascading Hearts Particle Shower */
+.floating-heart {
+  position: absolute;
+  bottom: -40px;
+  font-size: 1.8rem;
+  pointer-events: none;
+  animation: heart-float 1.5s ease-out forwards;
+  z-index: 105;
+}
+
+@keyframes heart-float {
+  0% {
+    bottom: -40px;
+    transform: translateX(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(15px) scale(1.1);
+  }
+  40% {
+    transform: translateX(-15px) scale(1.3);
+  }
+  60% {
+    transform: translateX(15px) scale(1.1);
+  }
+  80% {
+    opacity: 0.8;
+    transform: translateX(-10px) scale(0.9);
+  }
+  100% {
+    bottom: 80%;
+    transform: translateX(10px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* Camera Viewfinder Flash Trigger Effect */
+.camera-video.flash-effect {
+  filter: brightness(3) contrast(0.5);
+  transition: filter 0.05s ease-out;
+}
+
 
 

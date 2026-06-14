@@ -44,10 +44,14 @@ export class LandingView implements AppView {
                 <span class="tablet-marquee">Tap to choose</span>
               </div>
  
-              <!-- Start Button -->
-              <div class="arcade-start-button-wrapper">
-                <button class="arcade-start-btn" id="arcadeStartBtn" title="Start Session"></button>
-                <span class="arcade-btn-label">START</span>
+              <!-- Drag-and-drop Coin Acceptor slot -->
+              <div class="coin-acceptor-wrapper" style="margin-bottom: 24px;">
+                <div class="coin-slot" id="coinSlot" title="Drag coin here to credit machine">
+                  <div class="coin-slot-header">COIN ENTRY</div>
+                  <div class="coin-slot-entry"></div>
+                  <div class="coin-slot-val">1 ₱</div>
+                </div>
+                <div class="coin-quarter" id="quarterCoin" draggable="true" title="Drag to slot, or click to insert"></div>
               </div>
  
               <!-- File Intake Slot (Uploader) at the bottom -->
@@ -70,7 +74,6 @@ export class LandingView implements AppView {
     `;
 
     // Hook elements
-    const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
     const fileIntakeSlot = container.querySelector('#fileIntakeSlot');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
@@ -111,21 +114,166 @@ export class LandingView implements AppView {
       if (tabletMarquee) tabletMarquee.textContent = '▶ Duet ready';
     });
 
-    // Start action — always available
+    let coinCredited = false;
+
+    // Start action
     const startAction = () => {
+      if (!coinCredited) {
+        // Auto credit coin if clicking curtain or direct start
+        insertCoin();
+        this.audio.playTypewriter();
+        setTimeout(() => {
+          proceedStart();
+        }, 500);
+      } else {
+        this.audio.playTypewriter();
+        proceedStart();
+      }
+    };
+
+    const proceedStart = () => {
       if (this.state.boothMode === 'duet') {
-        this.audio.playCoinDrop(); // Play arcade coin sound
         const roomCode = `room-${Math.random().toString(36).substring(2, 9)}`;
         this.state.duetRoomId = roomCode;
         this.state.duetRole = 'host';
         this.onViewChange('duet' as any);
       } else {
-        this.audio.playTypewriter();
         this.onViewChange('camera-setup');
       }
     };
 
-    arcadeStartBtn?.addEventListener('click', startAction);
+    const insertCoin = () => {
+      if (coinCredited) return;
+      coinCredited = true;
+      this.audio.playCoinDrop();
+      
+      const coin = container.querySelector('#quarterCoin') as HTMLElement;
+      const slot = container.querySelector('#coinSlot') as HTMLElement;
+
+      if (coin) {
+        coin.style.transform = 'translateY(30px) scale(0)';
+        coin.style.opacity = '0';
+        coin.style.transition = 'all 0.4s ease';
+      }
+      if (slot) {
+        slot.classList.add('inserted');
+      }
+
+      setTimeout(() => {
+        proceedStart();
+      }, 700);
+    };
+
+    // Drag and Drop implementation
+    const coinEl = container.querySelector('#quarterCoin') as HTMLElement;
+    const slotEl = container.querySelector('#coinSlot') as HTMLElement;
+
+    if (coinEl && slotEl) {
+      coinEl.addEventListener('dragstart', (e: DragEvent) => {
+        e.dataTransfer?.setData('text/plain', 'coin');
+        this.audio.playTypewriter();
+        coinEl.classList.add('dragging');
+      });
+
+      coinEl.addEventListener('dragend', () => {
+        coinEl.classList.remove('dragging');
+      });
+
+      slotEl.addEventListener('dragover', (e: DragEvent) => {
+        e.preventDefault();
+        slotEl.classList.add('hover');
+      });
+
+      slotEl.addEventListener('dragleave', () => {
+        slotEl.classList.remove('hover');
+      });
+
+      slotEl.addEventListener('drop', (e: DragEvent) => {
+        e.preventDefault();
+        slotEl.classList.remove('hover');
+        const data = e.dataTransfer?.getData('text/plain');
+        if (data === 'coin') {
+          insertCoin();
+        }
+      });
+
+      // Touch Drag & Drop for Mobile Devices
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let coinStartX = 0;
+      let coinStartY = 0;
+      let isTouchDragging = false;
+
+      coinEl.addEventListener('touchstart', (e: TouchEvent) => {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        const rect = coinEl.getBoundingClientRect();
+        coinStartX = rect.left;
+        coinStartY = rect.top;
+        isTouchDragging = true;
+        coinEl.classList.add('dragging');
+        this.audio.playTypewriter();
+      }, { passive: true });
+
+      coinEl.addEventListener('touchmove', (e: TouchEvent) => {
+        if (!isTouchDragging) return;
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        
+        coinEl.style.position = 'fixed';
+        coinEl.style.left = `${coinStartX + dx}px`;
+        coinEl.style.top = `${coinStartY + dy}px`;
+        coinEl.style.zIndex = '9999';
+
+        // Overlap check
+        const slotRect = slotEl.getBoundingClientRect();
+        if (
+          touch.clientX >= slotRect.left &&
+          touch.clientX <= slotRect.right &&
+          touch.clientY >= slotRect.top &&
+          touch.clientY <= slotRect.bottom
+        ) {
+          slotEl.classList.add('hover');
+        } else {
+          slotEl.classList.remove('hover');
+        }
+      }, { passive: true });
+
+      coinEl.addEventListener('touchend', (e: TouchEvent) => {
+        if (!isTouchDragging) return;
+        isTouchDragging = false;
+        coinEl.classList.remove('dragging');
+        slotEl.classList.remove('hover');
+
+        const touch = e.changedTouches[0];
+        const slotRect = slotEl.getBoundingClientRect();
+
+        if (
+          touch.clientX >= slotRect.left &&
+          touch.clientX <= slotRect.right &&
+          touch.clientY >= slotRect.top &&
+          touch.clientY <= slotRect.bottom
+        ) {
+          insertCoin();
+        } else {
+          coinEl.style.position = '';
+          coinEl.style.left = '';
+          coinEl.style.top = '';
+          coinEl.style.zIndex = '';
+        }
+      });
+
+      // Quick auto-insert click trigger
+      coinEl.addEventListener('click', () => {
+        insertCoin();
+      });
+      slotEl.addEventListener('click', () => {
+        insertCoin();
+      });
+    }
+
     cabinetCurtainDoor?.addEventListener('click', startAction);
 
     fileIntakeSlot?.addEventListener('click', () => {

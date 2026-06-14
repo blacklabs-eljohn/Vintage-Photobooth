@@ -2,11 +2,14 @@ import type { AppView, AppState } from '../types';
 import { AudioManager } from '../components/AudioManager';
 import { VINTAGE_THEMES, ThemeManager } from '../components/ThemeManager';
 import { StripGenerator } from '../components/StripGenerator';
+import { supabase } from '../components/SupabaseClient';
 
 export class CustomizeView implements AppView {
   private state: AppState;
   private audio: AudioManager;
   private onViewChange: (view: 'result' | 'landing') => void;
+  private channel: any = null;
+  private container: HTMLElement | null = null;
 
   constructor(
     state: AppState,
@@ -19,6 +22,24 @@ export class CustomizeView implements AppView {
   }
 
   public render(container: HTMLElement) {
+    this.container = container;
+
+    // Connect to drawing sync channel if Duet session is active
+    if (this.state.duetRoomId) {
+      this.channel = supabase.channel(`duet-customize-${this.state.duetRoomId}`);
+      this.channel
+        .on('broadcast', { event: 'draw_stroke' }, (payload: any) => {
+          if (payload.payload) {
+            const { x1, y1, x2, y2, color, width } = payload.payload;
+            this.drawRemoteStroke(x1, y1, x2, y2, color, width);
+          }
+        })
+        .on('broadcast', { event: 'clear_sig' }, () => {
+          this.clearLocalCanvasOnly();
+        })
+        .subscribe();
+    }
+
     // Set default date if empty
     if (!this.state.stripSettings.dateStr) {
       const today = new Date();
@@ -343,6 +364,21 @@ export class CustomizeView implements AppView {
           sigCtx.lineTo(coords.x, coords.y);
           sigCtx.stroke();
           
+          if (this.channel) {
+            this.channel.send({
+              type: 'broadcast',
+              event: 'draw_stroke',
+              payload: {
+                x1: lastX,
+                y1: lastY,
+                x2: coords.x,
+                y2: coords.y,
+                color: '#2a2522',
+                width: 2.5
+              }
+            });
+          }
+          
           lastX = coords.x;
           lastY = coords.y;
         };
@@ -367,10 +403,12 @@ export class CustomizeView implements AppView {
 
     clearSignatureBtn?.addEventListener('click', () => {
       this.audio.playTypewriter();
-      if (signaturePad) {
-        const sigCtx = signaturePad.getContext('2d');
-        sigCtx?.clearRect(0, 0, signaturePad.width, signaturePad.height);
-        this.state.stripSettings.signatureDataUrl = '';
+      this.clearLocalCanvasOnly();
+      if (this.channel) {
+        this.channel.send({
+          type: 'broadcast',
+          event: 'clear_sig'
+        });
       }
     });
 
@@ -428,5 +466,38 @@ export class CustomizeView implements AppView {
 
   private wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private drawRemoteStroke(x1: number, y1: number, x2: number, y2: number, color: string, width: number) {
+    const signaturePad = this.container?.querySelector('#signaturePad') as HTMLCanvasElement;
+    if (signaturePad) {
+      const sigCtx = signaturePad.getContext('2d');
+      if (sigCtx) {
+        sigCtx.strokeStyle = color;
+        sigCtx.lineWidth = width;
+        sigCtx.lineCap = 'round';
+        sigCtx.lineJoin = 'round';
+        sigCtx.beginPath();
+        sigCtx.moveTo(x1, y1);
+        sigCtx.lineTo(x2, y2);
+        sigCtx.stroke();
+      }
+    }
+  }
+
+  private clearLocalCanvasOnly() {
+    const signaturePad = this.container?.querySelector('#signaturePad') as HTMLCanvasElement;
+    if (signaturePad) {
+      const sigCtx = signaturePad.getContext('2d');
+      sigCtx?.clearRect(0, 0, signaturePad.width, signaturePad.height);
+      this.state.stripSettings.signatureDataUrl = '';
+    }
+  }
+
+  public destroy() {
+    if (this.channel) {
+      this.channel.unsubscribe();
+      this.channel = null;
+    }
   }
 }

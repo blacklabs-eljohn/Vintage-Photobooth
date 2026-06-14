@@ -10,6 +10,9 @@ export interface AppState {
   boothMode: 'strip' | 'polaroid' | 'duet';
   duetRoomId?: string;
   duetRole?: 'host' | 'partner';
+  humEnabled?: boolean;
+  soundEnabled?: boolean;
+  crtEnabled?: boolean;
 }
 
 export interface AppView {

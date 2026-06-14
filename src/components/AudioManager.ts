@@ -1,6 +1,9 @@
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
+  private humSourceNode: GainNode | null = null;
+  private humOscs: OscillatorNode[] = [];
+  private humNoiseSource: AudioBufferSourceNode | null = null;
 
   constructor() {
     // AudioContext will be initialized on first user interaction to comply with browser policies
@@ -420,6 +423,115 @@ export class AudioManager {
       osc2.stop(now + 0.13);
     } catch (e) {
       console.warn('Failed to play beep sound:', e);
+    }
+  }
+
+  public startAmbientHum() {
+    if (this.muted) return;
+    if (this.humSourceNode) return; // Already running
+
+    try {
+      const ctx = this.initContext();
+      const now = ctx.currentTime;
+      
+      const mainGain = ctx.createGain();
+      mainGain.gain.setValueAtTime(0, now);
+      mainGain.gain.linearRampToValueAtTime(0.04, now + 1.0); // Smooth fade-in
+      mainGain.connect(ctx.destination);
+      this.humSourceNode = mainGain;
+
+      // 1. Low frequency hum (e.g. 60Hz transformer hum)
+      const osc60 = ctx.createOscillator();
+      osc60.type = 'sine';
+      osc60.frequency.setValueAtTime(60, now);
+      osc60.connect(mainGain);
+      osc60.start(now);
+      this.humOscs.push(osc60);
+
+      // Harmonics for a buzzier sound (120Hz, 180Hz)
+      const osc120 = ctx.createOscillator();
+      osc120.type = 'triangle';
+      osc120.frequency.setValueAtTime(120, now);
+      const osc120Gain = ctx.createGain();
+      osc120Gain.gain.setValueAtTime(0.3, now);
+      osc120.connect(osc120Gain);
+      osc120Gain.connect(mainGain);
+      osc120.start(now);
+      this.humOscs.push(osc120);
+
+      // 2. High frequency CRT ring (e.g. 10kHz flyback transformer ring, pleasant volume)
+      const oscCRT = ctx.createOscillator();
+      oscCRT.type = 'sine';
+      oscCRT.frequency.setValueAtTime(10000, now);
+      const oscCRTGain = ctx.createGain();
+      oscCRTGain.gain.setValueAtTime(0.03, now);
+      oscCRT.connect(oscCRTGain);
+      oscCRTGain.connect(mainGain);
+      oscCRT.start(now);
+      this.humOscs.push(oscCRT);
+
+      // 3. Ambient fan whirr (bandpassed white noise)
+      const duration = 2.0;
+      const bufferSize = ctx.sampleRate * duration;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(250, now); // Low wind/fan frequency
+      filter.Q.setValueAtTime(1.5, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.15, now);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(mainGain);
+      
+      noise.start(now);
+      this.humNoiseSource = noise;
+    } catch (e) {
+      console.warn('Failed to start ambient hum:', e);
+    }
+  }
+
+  public stopAmbientHum() {
+    if (this.humSourceNode) {
+      try {
+        const ctx = this.initContext();
+        const now = ctx.currentTime;
+        const gainNode = this.humSourceNode;
+        
+        // Fade out smoothly
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+
+        const oscs = this.humOscs;
+        const noise = this.humNoiseSource;
+
+        this.humSourceNode = null;
+        this.humOscs = [];
+        this.humNoiseSource = null;
+
+        setTimeout(() => {
+          oscs.forEach(osc => {
+            try { osc.stop(); } catch (err) {}
+          });
+          if (noise) {
+            try { noise.stop(); } catch (err) {}
+          }
+        }, 600);
+      } catch (e) {
+        console.warn('Failed to stop ambient hum:', e);
+      }
     }
   }
 }

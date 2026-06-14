@@ -86,6 +86,11 @@ export class DuetView implements AppView {
           if (payload.payload) {
             this.triggerLocalCountdown(payload.payload.frameIndex);
           }
+        },
+        send_reaction: (payload: any) => {
+          if (payload.payload && payload.payload.type) {
+            this.triggerReaction(payload.payload.type);
+          }
         }
       }
     );
@@ -160,6 +165,7 @@ export class DuetView implements AppView {
     
     this.container!.innerHTML = `
       <div class="view-panel">
+        <div class="reaction-overlay-container" id="reactionOverlayContainer"></div>
         <div class="booth-inner-console lobby-panel">
           <h2 class="setup-title">LDR Duet Lobby</h2>
           <p class="console-help-text">Invite your partner to step inside the photobooth cabinet with you.</p>
@@ -190,6 +196,16 @@ export class DuetView implements AppView {
             }
             <button id="abortDuetBtn" class="btn-secondary console-btn-secondary" style="margin-top: 8px;">ABORT SESSION</button>
           </div>
+
+          <div class="duet-react-panel" style="margin-top: 16px;">
+            <span class="react-label">Send Reaction:</span>
+            <div class="react-buttons">
+              <button class="react-btn" data-react="ping">🔔 Ping</button>
+              <button class="react-btn" data-react="cheese">🧀 Smile</button>
+              <button class="react-btn" data-react="wink">😉 Wink</button>
+              <button class="react-btn" data-react="love">❤️ Love</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -217,6 +233,8 @@ export class DuetView implements AppView {
       this.destroy();
       this.onViewChange('landing');
     });
+
+    this.hookReactButtons(this.container!);
   }
 
   private renderSetup() {
@@ -351,6 +369,7 @@ export class DuetView implements AppView {
   private async renderCapturing() {
     this.container!.innerHTML = `
       <div class="view-panel">
+        <div class="reaction-overlay-container" id="reactionOverlayContainer"></div>
         <div class="booth-inner-console capture-panel">
           <!-- Viewfinders Row -->
           <div class="duet-viewfinders">
@@ -398,6 +417,16 @@ export class DuetView implements AppView {
             <button id="abortSessionBtn" class="btn-secondary console-btn-secondary" style="margin-top: 8px;">ABORT</button>
           </div>
 
+          <div class="duet-react-panel" style="margin-top: 10px;">
+            <span class="react-label">Send Reaction:</span>
+            <div class="react-buttons">
+              <button class="react-btn" data-react="ping">🔔 Ping</button>
+              <button class="react-btn" data-react="cheese">🧀 Smile</button>
+              <button class="react-btn" data-react="wink">😉 Wink</button>
+              <button class="react-btn" data-react="love">❤️ Love</button>
+            </div>
+          </div>
+
           <!-- Countdown Overlay inside screen -->
           <div class="countdown-overlay" id="countdownOverlay" style="display: none;">
             <div class="countdown-number" id="countdownNumber">3</div>
@@ -437,6 +466,7 @@ export class DuetView implements AppView {
 
     // Synchronize UI if some photos were already taken
     this.updateIndicators();
+    this.hookReactButtons(this.container!);
   }
 
   private renderStitching() {
@@ -719,6 +749,67 @@ export class DuetView implements AppView {
     return new Promise((resolve) => {
       this.timeoutId = setTimeout(resolve, ms);
     });
+  }
+
+  private hookReactButtons(container: HTMLElement) {
+    const buttons = container.querySelectorAll('.react-btn');
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const reactType = btn.getAttribute('data-react');
+        if (reactType) {
+          this.audio.playTypewriter();
+          this.broadcast('send_reaction', { type: reactType });
+          this.triggerReaction(reactType); // Show locally too!
+        }
+      });
+    });
+  }
+
+  private triggerReaction(type: string) {
+    const container = this.container?.querySelector('#reactionOverlayContainer') as HTMLElement;
+    if (!container) return;
+
+    const badge = document.createElement('div');
+    badge.className = `reaction-badge badge-${type}`;
+    
+    let label = '';
+    if (type === 'ping') {
+      label = '🔔 PING!';
+      this.audio.playBeep();
+    } else if (type === 'cheese') {
+      label = '🧀 SAY CHEESE!';
+      this.audio.playShutter();
+      // Flash local viewfinder briefly
+      const flash = this.container?.querySelector('#boothVideo') as HTMLElement;
+      if (flash) {
+        flash.classList.add('flash-effect');
+        setTimeout(() => flash.classList.remove('flash-effect'), 200);
+      }
+    } else if (type === 'wink') {
+      label = '😉 WINK!';
+      this.audio.playTypewriter();
+    } else if (type === 'love') {
+      label = '❤️ LOVE!';
+      this.audio.playCoinDrop();
+      
+      // Heart particles shower cascade
+      for (let i = 0; i < 8; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'floating-heart';
+        heart.textContent = '❤️';
+        heart.style.left = `${20 + Math.random() * 60}%`;
+        heart.style.animationDelay = `${i * 0.1}s`;
+        container.appendChild(heart);
+        setTimeout(() => heart.remove(), 1500);
+      }
+    }
+
+    badge.textContent = label;
+    container.appendChild(badge);
+
+    setTimeout(() => {
+      badge.remove();
+    }, 2000);
   }
 
   public destroy() {
