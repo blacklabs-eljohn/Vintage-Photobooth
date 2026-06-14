@@ -189,36 +189,13 @@ class AppController {
     });
   }
 
-  // Header render containing the moments counter and retro switches
+  // Header render containing the moments counter
   private renderHeader() {
     this.headerContainer.innerHTML = `
       <div class="header-counter">
         <span class="counter-label">RETROLENS MOMENTS</span>
         <div class="counter-display" id="momentsCounterDisplay">
           <span class="counter-digits" id="momentsCounterDigits">------</span>
-        </div>
-      </div>
-      <div class="retro-console-controls">
-        <div class="retro-switch-group" title="Toggle Mechanical Ambient Hum">
-          <span class="retro-switch-label">HUM</span>
-          <label class="retro-switch">
-            <input type="checkbox" id="humSwitch" ${this.state.humEnabled ? 'checked' : ''} />
-            <span class="retro-slider"></span>
-          </label>
-        </div>
-        <div class="retro-switch-group" title="Mute/Unmute Sounds">
-          <span class="retro-switch-label">SOUND</span>
-          <label class="retro-switch">
-            <input type="checkbox" id="soundSwitch" ${this.state.soundEnabled ? 'checked' : ''} />
-            <span class="retro-slider"></span>
-          </label>
-        </div>
-        <div class="retro-switch-group" title="Toggle Cabinet CRT Filter">
-          <span class="retro-switch-label">CRT</span>
-          <label class="retro-switch">
-            <input type="checkbox" id="crtSwitch" ${this.state.crtEnabled ? 'checked' : ''} />
-            <span class="retro-slider"></span>
-          </label>
         </div>
       </div>
     `;
@@ -229,49 +206,6 @@ class AppController {
     } else {
       document.body.classList.remove('crt-active');
     }
-
-    // Hook switches
-    const humSwitch = this.headerContainer.querySelector('#humSwitch') as HTMLInputElement;
-    const soundSwitch = this.headerContainer.querySelector('#soundSwitch') as HTMLInputElement;
-    const crtSwitch = this.headerContainer.querySelector('#crtSwitch') as HTMLInputElement;
-
-    humSwitch?.addEventListener('change', () => {
-      this.state.humEnabled = humSwitch.checked;
-      this.audio.playTypewriter();
-      if (this.state.humEnabled) {
-        this.audio.startAmbientHum();
-      } else {
-        this.audio.stopAmbientHum();
-      }
-    });
-
-    soundSwitch?.addEventListener('change', () => {
-      this.state.soundEnabled = soundSwitch.checked;
-      const currentlyMuted = this.audio.isMuted();
-      if (soundSwitch.checked && currentlyMuted) {
-        this.audio.toggleMute();
-      } else if (!soundSwitch.checked && !currentlyMuted) {
-        this.audio.toggleMute();
-      }
-      this.audio.playTypewriter();
-      
-      // Stop/start hum based on mute state too
-      if (soundSwitch.checked && this.state.humEnabled) {
-        this.audio.startAmbientHum();
-      } else {
-        this.audio.stopAmbientHum();
-      }
-    });
-
-    crtSwitch?.addEventListener('change', () => {
-      this.state.crtEnabled = crtSwitch.checked;
-      this.audio.playTypewriter();
-      if (this.state.crtEnabled) {
-        document.body.classList.add('crt-active');
-      } else {
-        document.body.classList.remove('crt-active');
-      }
-    });
 
     // To start hum on first click if switch is enabled (due to browser autoplay policies)
     const startHumOnInteraction = () => {

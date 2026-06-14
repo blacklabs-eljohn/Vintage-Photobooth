@@ -375,6 +375,7 @@ body::after {
   align-items: center;
   width: 100%;
   animation: view-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
 }
 
 @keyframes view-enter {
@@ -2341,15 +2342,41 @@ body.crt-active::before {
 /* Mechanical Coin Acceptor (Landing Page) */
 .coin-acceptor-wrapper {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.coin-row-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 16px;
-  margin: 10px 0;
-  background: rgba(0,0,0,0.15);
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1.5px dashed rgba(255,255,255,0.15);
-  width: 144px;
+  width: 100%;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  z-index: 100;
+  user-select: none;
+}
+
+.coin-helper-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7d7570;
+  font-family: var(--font-typewriter);
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.85;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+  animation: bounce-horizontal-indicator 1.2s infinite alternate ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes bounce-horizontal-indicator {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(4px); }
 }
 
 .coin-slot {
@@ -2427,17 +2454,17 @@ body.crt-active::before {
 }
 
 .coin-quarter {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background-image: url('./piso.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.4);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   cursor: grab;
   user-select: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.5s ease;
   border: 1px solid rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
 }
@@ -2445,6 +2472,7 @@ body.crt-active::before {
 .coin-quarter:active {
   cursor: grabbing;
   transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.45);
 }
 
 .coin-quarter.dragging {

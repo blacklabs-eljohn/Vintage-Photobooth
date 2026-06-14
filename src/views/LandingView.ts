@@ -44,19 +44,18 @@ export class LandingView implements AppView {
                 <span class="tablet-marquee">Tap to choose</span>
               </div>
  
-              <!-- Drag-and-drop Coin Acceptor slot -->
-              <div class="coin-acceptor-wrapper" style="margin-bottom: 24px;">
-                <div class="coin-slot" id="coinSlot" title="Drag coin here to credit machine">
+              <!-- Centered Coin Acceptor slot -->
+              <div class="coin-acceptor-wrapper" style="margin-bottom: 12px; width: 100%;">
+                <div class="coin-slot" id="coinSlot" title="Drag coin here to credit machine" style="margin: 0 auto;">
                   <div class="coin-slot-header">COIN ENTRY</div>
                   <div class="coin-slot-entry"></div>
                   <div class="coin-slot-val">1 ₱</div>
                 </div>
-                <div class="coin-quarter" id="quarterCoin" draggable="true" title="Drag to slot, or click to insert"></div>
               </div>
  
-              <!-- File Intake Slot (Uploader) at the bottom -->
+              <!-- File Intake Slot (Uploader) -->
               <div class="cabinet-file-slot" id="fileIntakeSlot" title="Insert Digital Negatives (Upload)">
-                <span class="file-slot-label">FILE INTAKE</span>
+                <span class="file-slot-label">UPLOAD FILE</span>
                 <div class="file-slot-mouth"></div>
               </div>
             </div>
@@ -69,6 +68,17 @@ export class LandingView implements AppView {
           </div>
           
           <input type="file" id="hiddenFileInput" class="hidden-file-input" multiple accept="image/*" />
+        </div>
+
+        <!-- Centered coin row container -->
+        <div class="coin-row-container" id="coinRowContainer">
+          <div class="coin-helper-text">
+            <span>Insert the coin</span>
+            <svg width="20" height="16" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <div class="coin-quarter" id="quarterCoin" draggable="true" title="Drag me to the slot or click to insert"></div>
         </div>
       </div>
     `;
@@ -149,11 +159,23 @@ export class LandingView implements AppView {
       
       const coin = container.querySelector('#quarterCoin') as HTMLElement;
       const slot = container.querySelector('#coinSlot') as HTMLElement;
+      const helperText = container.querySelector('.coin-helper-text') as HTMLElement;
 
       if (coin) {
-        coin.style.transform = 'translateY(30px) scale(0)';
+        // Calculate the physical offset between the coin and the entry slot dynamically
+        const coinRect = coin.getBoundingClientRect();
+        const slotRect = slot.getBoundingClientRect();
+        const deltaX = slotRect.left + slotRect.width / 2 - (coinRect.left + coinRect.width / 2);
+        const deltaY = slotRect.top + slotRect.height / 2 - (coinRect.top + coinRect.height / 2);
+
+        coin.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.25) rotate(360deg)`;
         coin.style.opacity = '0';
-        coin.style.transition = 'all 0.4s ease';
+        coin.style.transition = 'all 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
+      }
+      if (helperText) {
+        helperText.style.opacity = '0';
+        helperText.style.transform = 'translateX(-15px)';
+        helperText.style.transition = 'all 0.4s ease';
       }
       if (slot) {
         slot.classList.add('inserted');
@@ -161,7 +183,7 @@ export class LandingView implements AppView {
 
       setTimeout(() => {
         proceedStart();
-      }, 700);
+      }, 800);
     };
 
     // Drag and Drop implementation
@@ -221,7 +243,7 @@ export class LandingView implements AppView {
         const touch = e.touches[0];
         const dx = touch.clientX - touchStartX;
         const dy = touch.clientY - touchStartY;
-        
+
         coinEl.style.position = 'fixed';
         coinEl.style.left = `${coinStartX + dx}px`;
         coinEl.style.top = `${coinStartY + dy}px`;
@@ -290,7 +312,7 @@ export class LandingView implements AppView {
       if (this.state.boothMode === 'duet') {
         this.state.boothMode = 'strip';
       }
-      
+
       const minRequired = isPolaroid ? 1 : 3;
 
       if (files.length < minRequired) {
