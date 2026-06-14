@@ -123,8 +123,10 @@ export async function fetchDuetFrames(roomId: string): Promise<any[]> {
  */
 export function subscribeToDuetRoom(
   roomId: string,
+  role: 'host' | 'partner',
   onNewFrame: (frame: any) => void,
-  onPresenceSync: (presenceState: any) => void
+  onPresenceSync: (presenceState: any) => void,
+  broadcastHandlers: { [event: string]: (payload: any) => void }
 ) {
   // Subscribe to real-time insertions on the duet_frames table
   const dbChannel = supabase
@@ -152,8 +154,24 @@ export function subscribeToDuetRoom(
     .on('presence', { event: 'sync' }, () => {
       const state = presenceChannel.presenceState();
       onPresenceSync(state);
-    })
-    .subscribe();
+    });
+
+  // Attach broadcast handlers
+  for (const [event, handler] of Object.entries(broadcastHandlers)) {
+    presenceChannel.on('broadcast', { event }, (payload) => {
+      handler(payload);
+    });
+  }
+
+  // Subscribe and track presence
+  presenceChannel.subscribe(async (status: string) => {
+    if (status === 'SUBSCRIBED') {
+      await presenceChannel.track({
+        role,
+        online: true,
+      });
+    }
+  });
 
   return {
     dbChannel,

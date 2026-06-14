@@ -66,44 +66,32 @@ export class DuetView implements AppView {
 
     const roomSub = subscribeToDuetRoom(
       this.roomId,
+      this.role,
       (newFrame) => this.handleNewDbFrame(newFrame),
-      (presenceState) => this.handlePresenceSync(presenceState)
+      (presenceState) => this.handlePresenceSync(presenceState),
+      {
+        start_setup: () => {
+          this.transitionToState('setup');
+        },
+        camera_ready: (payload: any) => {
+          if (payload.payload && payload.payload.role !== this.role) {
+            this.partnerCameraReady = true;
+            this.renderState();
+          }
+        },
+        start_capturing: () => {
+          this.transitionToState('capturing');
+        },
+        trigger_countdown: (payload: any) => {
+          if (payload.payload) {
+            this.triggerLocalCountdown(payload.payload.frameIndex);
+          }
+        }
+      }
     );
 
     this.subscription = roomSub;
     this.presenceChannel = roomSub.presenceChannel;
-
-    // Listen to broadcast triggers
-    this.presenceChannel.on('broadcast', { event: 'start_setup' }, () => {
-      this.transitionToState('setup');
-    });
-
-    this.presenceChannel.on('broadcast', { event: 'camera_ready' }, (payload: any) => {
-      if (payload.payload && payload.payload.role !== this.role) {
-        this.partnerCameraReady = true;
-        this.renderState();
-      }
-    });
-
-    this.presenceChannel.on('broadcast', { event: 'start_capturing' }, () => {
-      this.transitionToState('capturing');
-    });
-
-    this.presenceChannel.on('broadcast', { event: 'trigger_countdown' }, (payload: any) => {
-      if (payload.payload) {
-        this.triggerLocalCountdown(payload.payload.frameIndex);
-      }
-    });
-
-    // Subscribe and track presence
-    this.presenceChannel.subscribe(async (status: string) => {
-      if (status === 'SUBSCRIBED') {
-        await this.presenceChannel.track({
-          role: this.role,
-          online: true,
-        });
-      }
-    });
   }
 
   private broadcast(event: string, payload: any = {}) {
