@@ -29,7 +29,7 @@ export class LandingView implements AppView {
         <div class="cabinet-wrapper">
           <!-- Neon photos header marquee -->
           <div class="neon-marquee">
-            <h2 class="neon-text">Photobooth</h2>
+            <h1 class="neon-text">RetroLens</h1>
           </div>
  
           <!-- The Physical Photobooth Cabinet facade -->

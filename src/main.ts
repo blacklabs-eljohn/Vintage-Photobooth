@@ -10,6 +10,8 @@ import { CustomizeView } from './views/CustomizeView';
 import { ResultView } from './views/ResultView';
 import { fetchMomentsCount, subscribeToMomentsChanges } from './components/SupabaseClient';
 import { DuetView } from './views/DuetView';
+import { updateMetadata } from './utils/seo';
+
 
 // Initialize Vercel Analytics
 inject();
@@ -117,6 +119,52 @@ class AppController {
 
       this.state.currentView = view;
       this.viewContainer.innerHTML = ''; // Clear container
+
+      // 1.5. Update SEO metadata dynamically
+      switch (view) {
+        case 'landing':
+          updateMetadata(
+            'RetroLens — The Vintage Photobooth',
+            'Step inside our digital time machine. Join thousands of users creating nostalgic vintage photostrips instantly. Capture or upload your photos to make a moment at RetroLens.',
+            ''
+          );
+          break;
+        case 'camera-setup':
+          updateMetadata(
+            'Camera Setup — RetroLens',
+            'Configure your camera and preview your lens settings before entering the RetroLens vintage photobooth.',
+            '/camera-setup'
+          );
+          break;
+        case 'capture':
+          updateMetadata(
+            'Say Cheese! Capture Vintage Moments — RetroLens',
+            'Capture vintage photos in the RetroLens photobooth. Get ready for the flash!',
+            '/capture'
+          );
+          break;
+        case 'customize':
+          updateMetadata(
+            'Customize Your Photostrip — RetroLens',
+            'Edit and style your photostrip. Select classic border designs, apply vintage filters like film grain, light leaks, dust, scratches, and sign your name.',
+            '/customize'
+          );
+          break;
+        case 'result':
+          updateMetadata(
+            'Your Vintage Masterpiece — RetroLens',
+            'View, download, and share your vintage photostrip or polaroid created with RetroLens.',
+            '/result'
+          );
+          break;
+        case 'duet':
+          updateMetadata(
+            'Duet Booth Co-Op Capture — RetroLens',
+            'Join a co-op capture session with a friend to take vintage photostrip frames together in real-time.',
+            '/duet'
+          );
+          break;
+      }
 
       // 2. Instantiate and render target view
       switch (view) {

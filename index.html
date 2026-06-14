@@ -2,24 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📸</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RetroLens — The Vintage Photobooth</title>
     <meta name="description" content="Step inside our digital time machine. Join thousands of users creating nostalgic vintage photostrips instantly. Capture or upload your photos to make a moment at RetroLens." />
+    <link rel="canonical" href="https://booth.stoodioph.com/" />
     
+    <!-- Google Search Console verification -->
+    <meta name="google-site-verification" content="PASTE_YOUR_VERIFICATION_TOKEN_HERE" />
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://booth.stoodioph.com/" />
+    <meta property="og:site_name" content="RetroLens" />
     <meta property="og:title" content="RetroLens — The Vintage Photobooth" />
     <meta property="og:description" content="Step inside our digital time machine. Join thousands of users creating nostalgic vintage photostrips instantly. Capture or upload your photos to make a moment at RetroLens." />
-    <meta property="og:image" content="/cover.png" />
+    <meta property="og:image" content="https://booth.stoodioph.com/cover.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://booth.stoodioph.com/" />
     <meta property="twitter:title" content="RetroLens — The Vintage Photobooth" />
     <meta property="twitter:description" content="Step inside our digital time machine. Join thousands of users creating nostalgic vintage photostrips instantly. Capture or upload your photos to make a moment at RetroLens." />
-    <meta property="twitter:image" content="/cover.png" />
+    <meta property="twitter:image" content="https://booth.stoodioph.com/cover.png" />
 
-    
+    <!-- Schema.org JSON-LD Structured Data for Search Crawlers -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "RetroLens",
+        "alternateName": "RetroLens Vintage Photobooth",
+        "url": "https://booth.stoodioph.com/",
+        "logo": "https://booth.stoodioph.com/favicon.svg",
+        "image": "https://booth.stoodioph.com/cover.png",
+        "description": "Step inside our digital time machine. Create nostalgic vintage photostrips, polaroids, cinematic frames, and postcards instantly with realistic film grain, light leaks, and signature overlays.",
+        "applicationCategory": "MultimediaApplication, PhotoApplication",
+        "operatingSystem": "All (Web Browser)",
+        "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Ethan"
+        }
+      }
+    </script>
+
     <!-- Google Fonts: EB Garamond (classic serif), Special Elite (typewriter), Share Tech Mono (orange digital date), Outfit (clean UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +89,38 @@
     </div>
 
     <!-- Main Application Container -->
-    <main id="app" class="app-container"></main>
+    <main id="app" class="app-container">
+      <!-- Fallback Content for SEO crawlers and non-JS clients -->
+      <noscript>
+        <div style="padding: 20px; text-align: center; border: 1px dashed #cfbda8; background: #fffcf9; border-radius: 8px; margin: 20px 0; font-family: sans-serif; color: #4338ca;">
+          <p><strong>JavaScript is required to run the RetroLens interactive photobooth cabinet.</strong> Please enable JavaScript in your browser settings to step inside the booth, capture photos, and generate your vintage photostrip.</p>
+        </div>
+      </noscript>
+
+      <div class="seo-fallback-content" style="display: none; height: 0; overflow: hidden;" aria-hidden="true">
+        <h1>RetroLens — The Vintage Photobooth</h1>
+        <p>Step inside our digital time machine to create nostalgic vintage photostrips, polaroids, and postcard captures instantly.</p>
+        
+        <h2>Features of RetroLens Digital Photobooth</h2>
+        <ul>
+          <li><strong>Classic Formats:</strong> Create nostalgic 4-panel Photo Strips, Retro Polaroids, Cinematic Frame Cards, and Custom Postcards.</li>
+          <li><strong>Authentic Retro Styling:</strong> Customize your photos with realistic film grain, analog light leaks, dust &amp; scratches overlay effects, and custom classic borders.</li>
+          <li><strong>Live Capture &amp; Digital Negatives:</strong> Use your device camera to take live shots with a visual shutter count-down and flash effect, or upload digital photo negatives.</li>
+          <li><strong>Co-Op Duet Capture:</strong> Connect with a friend in real-time to take matching photostrip photos side-by-side.</li>
+          <li><strong>Download and Share:</strong> Generate high-resolution digital prints to save and share your vintage moments instantly.</li>
+        </ul>
+
+        <h2>How it works:</h2>
+        <ol>
+          <li>Choose your preferred layout format on the console keypad (Strip, Polaroid, Cine, or Postcard).</li>
+          <li>Credit the machine by dropping a vintage 1-peso coin into the coin entry slot.</li>
+          <li>Select Solo mode for a personal photoshoot or Duet mode to host/join a remote session.</li>
+          <li>Step inside! Allow camera access or upload your photo files.</li>
+          <li>Choose filters (B&amp;W, Sepia, Retro Warm, Cold Slate, etc.), adjust settings, write a caption, and sign your print.</li>
+          <li>Dispense your physical vintage photostrip print!</li>
+        </ol>
+      </div>
+    </main>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
