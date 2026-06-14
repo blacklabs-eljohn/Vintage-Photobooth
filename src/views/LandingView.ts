@@ -24,7 +24,7 @@ export class LandingView implements AppView {
         <div class="cabinet-wrapper">
           <!-- Neon photos header marquee -->
           <div class="neon-marquee">
-            <h2 class="neon-text">Photos</h2>
+            <h2 class="neon-text">Photobooth</h2>
           </div>
  
           <!-- The Physical Photobooth Cabinet facade -->
@@ -68,7 +68,7 @@ export class LandingView implements AppView {
         </div>
       </div>
     `;
- 
+
     // Hook elements
     const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
@@ -97,25 +97,25 @@ export class LandingView implements AppView {
       modeStripBtn.classList.remove('active-strip');
       if (tabletMarquee) tabletMarquee.textContent = '▶ Polaroid ready';
     });
- 
+
     // Start action — always available (no coin gate)
     const startAction = () => {
       this.audio.playTypewriter();
       this.onViewChange('camera-setup');
     };
- 
+
     arcadeStartBtn?.addEventListener('click', startAction);
     cabinetCurtainDoor?.addEventListener('click', startAction);
- 
+
     uploadPhotosBtn?.addEventListener('click', () => {
       this.audio.playTypewriter();
       hiddenFileInput?.click();
     });
- 
+
     hiddenFileInput?.addEventListener('change', async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
- 
+
       const isPolaroid = this.state.boothMode === 'polaroid';
       const minRequired = isPolaroid ? 1 : 3;
 
@@ -126,17 +126,17 @@ export class LandingView implements AppView {
         );
         return;
       }
- 
+
       const fileArray = Array.from(files).slice(0, minRequired);
- 
+
       try {
         const loadedUrls = await Promise.all(
           fileArray.map(file => this.readFileAsDataUrl(file))
         );
-        
+
         // Update state
         this.state.capturedFrames = loadedUrls;
-        
+
         // Go directly to customize
         this.onViewChange('customize');
       } catch (err) {
