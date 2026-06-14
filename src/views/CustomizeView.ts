@@ -152,9 +152,21 @@ export class CustomizeView implements AppView {
       <!-- Developing Loading Panel Overlay -->
       <div class="view-panel" id="developingOverlay" style="display: none;">
         <div class="developing-overlay">
-          <div class="chem-loader"></div>
-          <h2 class="dev-title" id="loaderTitle">Pouring Chemistry</h2>
-          <p class="dev-desc" id="loaderDesc">Agitating the developers and fixing silver halides...</p>
+          <!-- Flashing safe-red light -->
+          <div class="safelight-bulb"></div>
+          
+          <!-- Wet chemical bath tray -->
+          <div class="darkroom-tray">
+            <div class="developing-paper">
+              <div class="developing-paper-frame"></div>
+              <div class="developing-paper-frame" style="animation-delay: 0.6s;"></div>
+              <div class="developing-paper-frame" style="animation-delay: 1.2s;"></div>
+              <div class="developing-paper-footer"></div>
+            </div>
+          </div>
+          
+          <h2 class="dev-title" id="loaderTitle">Developer Bath</h2>
+          <p class="dev-desc" id="loaderDesc">Silver grains emerging under safety lights...</p>
         </div>
       </div>
     `;
@@ -382,10 +394,10 @@ export class CustomizeView implements AppView {
       developingOverlay.style.display = 'flex';
 
       const stages = [
-        { title: 'Exposing Frames', desc: 'Singeing digital grains and mixing silver solutions...' },
-        { title: 'Agitating Chemistry', desc: 'Developing negatives in active warm bath...' },
-        { title: 'Fixing & Rinsing', desc: 'Clearing halide compounds for permanent contrast...' },
-        { title: 'Tensioning Prints', desc: 'Drying and cutting the cardboard borders...' }
+        { title: 'Developer Bath', desc: 'Silver grains emerging in active developer...' },
+        { title: 'Stop Bath', desc: 'Halting chemical development and locking exposure...' },
+        { title: 'Fixer Bath', desc: 'Clearing silver halides for permanent contrast...' },
+        { title: 'Final Rinse', desc: 'Washing chemicals and drying cardboard backing...' }
       ];
 
       for (let i = 0; i < stages.length; i++) {

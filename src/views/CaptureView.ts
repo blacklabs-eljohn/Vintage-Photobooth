@@ -37,6 +37,9 @@ export class CaptureView implements AppView {
           <div class="viewfinder-outer">
             <video id="boothVideo" class="camera-video" autoplay playsinline></video>
             
+            <!-- Live light leak overlay -->
+            <div class="viewfinder-light-leak" id="viewfinderLightLeak"></div>
+            
             <!-- Grid Lines overlay -->
             <div class="overlay-grid"></div>
 
@@ -197,8 +200,12 @@ export class CaptureView implements AppView {
       boothInstructions.innerText = `Strike Pose ${frame + 1}!`;
 
       // 3-second countdown per frame
+      const viewfinderLightLeak = container.querySelector('#viewfinderLightLeak') as HTMLElement;
       for (let count = 3; count >= 1; count--) {
         if (!this.captureActive) break;
+
+        // Activate lens light leak during countdown
+        viewfinderLightLeak?.classList.add('active');
 
         // Show countdown panel
         countdownOverlay.classList.add('active');
@@ -220,6 +227,7 @@ export class CaptureView implements AppView {
 
       // Take Photo (Count = 0)
       countdownOverlay.classList.remove('active');
+      viewfinderLightLeak?.classList.remove('active');
       
       // Trigger camera shutter sound and flash overlay animation
       this.audio.playShutter();

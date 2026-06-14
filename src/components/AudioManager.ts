@@ -136,4 +136,78 @@ export class AudioManager {
       console.warn('Failed to play typewriter sound:', e);
     }
   }
+
+  // Synthesize a mechanical paper-feed whirr and clicks (duration 3.2s)
+  public playDispenser() {
+    if (this.muted) return;
+    try {
+      const ctx = this.initContext();
+      const duration = 3.2; // matches the print-delivery height transition
+      const now = ctx.currentTime;
+
+      // 1. Motor Hum & Whirr
+      const osc = ctx.createOscillator();
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      const gainNode = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(145, now);
+      osc.frequency.linearRampToValueAtTime(155, now + duration);
+
+      // LFO to create vibrating whirr
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(45, now); // hum frequency
+      lfoGain.gain.setValueAtTime(18, now); // vibrato depth
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(380, now);
+
+      // Connect LFO to oscillator frequency
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      // Fade in and out
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.2, now + 0.15); // fade in
+      gainNode.gain.setValueAtTime(0.2, now + duration - 0.4);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration); // fade out
+
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now);
+      lfo.start(now);
+      osc.stop(now + duration);
+      lfo.stop(now + duration);
+
+      // 2. Add periodic roller gear clicks
+      const clickInterval = 0.14; // every 140ms
+      const numClicks = Math.floor(duration / clickInterval) - 2;
+
+      for (let i = 0; i < numClicks; i++) {
+        const clickTime = now + (i * clickInterval) + 0.1;
+        
+        const clickOsc = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        
+        clickOsc.type = 'sine';
+        clickOsc.frequency.setValueAtTime(1100, clickTime);
+        clickOsc.frequency.exponentialRampToValueAtTime(80, clickTime + 0.015);
+        
+        clickGain.gain.setValueAtTime(0.06, clickTime);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.015);
+        
+        clickOsc.connect(clickGain);
+        clickGain.connect(ctx.destination);
+        
+        clickOsc.start(clickTime);
+        clickOsc.stop(clickTime + 0.02);
+      }
+    } catch (e) {
+      console.warn('Failed to play dispenser sound:', e);
+    }
+  }
 }
