@@ -1,4 +1,5 @@
 import './style.css';
+import { inject } from '@vercel/analytics';
 import type { AppState, AppView } from './types';
 import { AudioManager } from './components/AudioManager';
 import { CameraManager } from './components/CameraManager';
@@ -7,6 +8,10 @@ import { CameraSetupView } from './views/CameraSetupView';
 import { CaptureView } from './views/CaptureView';
 import { CustomizeView } from './views/CustomizeView';
 import { ResultView } from './views/ResultView';
+
+// Initialize Vercel Analytics
+inject();
+
 
 class AppController {
   private container: HTMLElement;
