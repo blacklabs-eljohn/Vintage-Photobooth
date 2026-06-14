@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📸</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RetroLens — The Vintage Photobooth</title>
+    <meta name="description" content="Step inside our digital time machine. Capture or upload photos to generate high-quality, nostalgic vintage vertical photostrips instantly." />
+    
+    <!-- Google Fonts: EB Garamond (classic serif), Special Elite (typewriter), Share Tech Mono (orange digital date), Outfit (clean UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;500;600&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Overlay Film Grain Effect -->
+    <div class="film-grain" id="filmGrainOverlay"></div>
+    
+    <!-- Shutter Flash View Overlay -->
+    <div class="shutter-flash" id="shutterFlash"></div>
+
+    <!-- Curtain Overlay for immersive view transitions -->
+    <div class="curtain-overlay" id="curtainOverlay">
+      <div class="curtain-panel left-curtain">
+        <div class="curtain-fold" style="--i: 1;"></div>
+        <div class="curtain-fold" style="--i: 2;"></div>
+        <div class="curtain-fold" style="--i: 3;"></div>
+        <div class="curtain-fold" style="--i: 4;"></div>
+        <div class="curtain-fold" style="--i: 5;"></div>
+        <div class="curtain-fold" style="--i: 6;"></div>
+        <div class="curtain-fold" style="--i: 7;"></div>
+        <div class="curtain-fold" style="--i: 8;"></div>
+      </div>
+      <div class="curtain-panel right-curtain">
+        <div class="curtain-fold" style="--i: 8;"></div>
+        <div class="curtain-fold" style="--i: 7;"></div>
+        <div class="curtain-fold" style="--i: 6;"></div>
+        <div class="curtain-fold" style="--i: 5;"></div>
+        <div class="curtain-fold" style="--i: 4;"></div>
+        <div class="curtain-fold" style="--i: 3;"></div>
+        <div class="curtain-fold" style="--i: 2;"></div>
+        <div class="curtain-fold" style="--i: 1;"></div>
+      </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <main id="app" class="app-container"></main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
