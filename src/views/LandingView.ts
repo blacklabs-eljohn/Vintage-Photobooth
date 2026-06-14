@@ -1,12 +1,11 @@
 import type { AppView, AppState } from '../types';
 import { AudioManager } from '../components/AudioManager';
-import leftImg from '../left.png';
-import rightImg from '../right.png';
 
 export class LandingView implements AppView {
   private state: AppState;
   private audio: AudioManager;
   private onViewChange: (view: 'camera-setup' | 'customize') => void;
+  private activeStep: 'format' | 'coin' | 'mode' = 'format';
 
   constructor(
     state: AppState,
@@ -22,7 +21,8 @@ export class LandingView implements AppView {
     if (!this.state.boothFormat) this.state.boothFormat = 'strip';
     if (!this.state.connectionMode) this.state.connectionMode = 'solo';
 
-    const currentMode = this.state.connectionMode;
+    // Reset step state back to format selection on initial render
+    this.activeStep = 'format';
 
     container.innerHTML = `
       <div class="view-panel">
@@ -36,36 +36,19 @@ export class LandingView implements AppView {
           <div class="booth-cabinet" id="cabinetBody">
             <!-- Left panel: Control Board (Tablet Console, Start Button, Dispenser) -->
             <div class="cabinet-panel-left">
-              <!-- Embedded Touchscreen Console -->
-              <div class="cabinet-tablet-console" id="tabletConsole">
-                <div class="tablet-format-slider" id="formatSlider">
-                  <button class="slider-arrow arrow-left" id="formatPrevBtn" title="Previous Format">◀</button>
-                  <div class="slider-viewport">
-                    <div class="slider-track" id="formatTrack">
-                      <div class="format-slide-card active-strip" data-format="strip" title="3-Shot Photostrip">🎞️ Strip</div>
-                      <div class="format-slide-card active-polaroid" data-format="polaroid" title="1-Shot Polaroid">📸 Polaroid</div>
-                      <div class="format-slide-card active-cinematic" data-format="cinematic" title="Landscape Cinematic Film">🎬 Cine</div>
-                      <div class="format-slide-card active-postcard" data-format="postcard" title="2x2 Retro Postcard">🎴 Postcard</div>
-                    </div>
-                  </div>
-                  <button class="slider-arrow arrow-right" id="formatNextBtn" title="Next Format">▶</button>
+              <!-- Embedded Touchscreen Console (Calculator Style) -->
+              <div class="cabinet-tablet-console calculator-console" id="tabletConsole">
+                <!-- LCD Screen at the Top -->
+                <div class="console-lcd-screen" id="consoleLcd">
+                  <div class="lcd-line lcd-status">SYS READY</div>
+                  <div class="lcd-line lcd-main">SELECT FORMAT</div>
+                  <div class="lcd-line lcd-sub">[ 🎞️ 📸 🎬 🎴 ]</div>
                 </div>
                 
-                <span class="tablet-screen-title" style="margin-top: 6px;">Mode</span>
-                <div class="toggle-switch-unit" id="modeToggle" title="Toggle Solo / Duet">
-                  <div class="toggle-label-plate ${currentMode === 'solo' ? 'active' : ''}" id="togglePlateLeft">
-                    <span class="led-dot"></span>👤 SOLO
-                  </div>
-                  <div class="toggle-switch-img-wrapper">
-                    <img src="${currentMode === 'solo' ? leftImg : rightImg}" id="toggleSwitchImg" class="toggle-switch-img" alt="Toggle Switch" />
-                  </div>
-                  <div class="toggle-label-plate plate-right ${currentMode === 'duet' ? 'active' : ''}" id="togglePlateRight">
-                    <span class="led-dot"></span>👥 DUET
-                  </div>
+                <!-- Keypad below the Screen -->
+                <div class="console-keypad" id="consoleKeypad">
+                  <!-- Dynamic Keypad Buttons will be rendered here -->
                 </div>
-                <span class="mode-hint-text" id="modeHintText">${currentMode === 'duet' ? '🔗 Link a partner' : '📷 Just you'}</span>
-                
-                <span class="tablet-marquee" style="margin-top: 4px;">Tap to choose</span>
               </div>
  
               <!-- Centered Coin Acceptor slot -->
@@ -95,7 +78,7 @@ export class LandingView implements AppView {
         </div>
 
         <!-- Centered coin row container -->
-        <div class="coin-row-container" id="coinRowContainer">
+        <div class="coin-row-container locked" id="coinRowContainer">
           <div class="coin-helper-text">
             <span>Insert the coin</span>
             <svg width="20" height="16" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
@@ -111,129 +94,151 @@ export class LandingView implements AppView {
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
     const fileIntakeSlot = container.querySelector('#fileIntakeSlot');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
-    const tabletMarquee = container.querySelector('.tablet-marquee') as HTMLElement;
 
-    const formatTrack = container.querySelector('#formatTrack') as HTMLElement;
-    const formatPrevBtn = container.querySelector('#formatPrevBtn') as HTMLButtonElement;
-    const formatNextBtn = container.querySelector('#formatNextBtn') as HTMLButtonElement;
+    const consoleLcd = container.querySelector('#consoleLcd') as HTMLElement;
+    const consoleKeypad = container.querySelector('#consoleKeypad') as HTMLElement;
+    const coinRowContainer = container.querySelector('#coinRowContainer') as HTMLElement;
 
-    const modeToggle = container.querySelector('#modeToggle') as HTMLElement;
-    const plateLeft = container.querySelector('#togglePlateLeft') as HTMLElement;
-    const plateRight = container.querySelector('#togglePlateRight') as HTMLElement;
-    const toggleSwitchImg = container.querySelector('#toggleSwitchImg') as HTMLImageElement;
-    const modeHintText = container.querySelector('#modeHintText') as HTMLElement;
-
-    const formats = ['strip', 'polaroid', 'cinematic', 'postcard'];
-    let currentFmtIndex = formats.indexOf(this.state.boothFormat || 'strip');
-    if (currentFmtIndex === -1) currentFmtIndex = 0;
-
-    const syncStateAndMarquee = () => {
+    const syncBackwardsCompatibleMode = () => {
       const fmt = this.state.boothFormat || 'strip';
       const md = this.state.connectionMode || 'solo';
       
-      // Update backwards compatible boothMode
       if (md === 'duet') {
         this.state.boothMode = 'duet';
       } else {
         this.state.boothMode = (fmt === 'polaroid' || fmt === 'cinematic') ? 'polaroid' : 'strip';
       }
-
-      if (tabletMarquee) {
-        const fmtLabel = fmt.charAt(0).toUpperCase() + fmt.slice(1);
-        const mdLabel = md.charAt(0).toUpperCase() + md.slice(1);
-        tabletMarquee.textContent = `▶ ${fmtLabel} (${mdLabel})`;
-      }
     };
 
-    const updateSliderUI = (animate = true) => {
-      if (!formatTrack) return;
-      if (!animate) {
-        formatTrack.style.transition = 'none';
-      } else {
-        formatTrack.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-      }
-      formatTrack.style.transform = `translateX(-${currentFmtIndex * 100}%)`;
-      
-      const cards = formatTrack.querySelectorAll('.format-slide-card');
-      cards.forEach((card, idx) => {
-        card.classList.toggle('active', idx === currentFmtIndex);
-      });
+    const updateConsole = () => {
+      if (!consoleLcd || !consoleKeypad) return;
 
-      const newFmt = formats[currentFmtIndex];
-      this.state.boothFormat = newFmt as any;
-      syncStateAndMarquee();
+      const fmt = this.state.boothFormat || 'strip';
+      const md = this.state.connectionMode || 'solo';
+
+      // 1. Render LCD Screen contents
+      if (this.activeStep === 'format') {
+        consoleLcd.innerHTML = `
+          <div class="lcd-line lcd-status">SYS READY</div>
+          <div class="lcd-line lcd-main">SELECT FORMAT</div>
+          <div class="lcd-line lcd-sub">[ 🎞️ 📸 🎬 🎴 ]</div>
+        `;
+        if (coinRowContainer) {
+          coinRowContainer.classList.add('locked');
+          coinRowContainer.classList.remove('active');
+        }
+      } else if (this.activeStep === 'coin') {
+        consoleLcd.innerHTML = `
+          <div class="lcd-line lcd-status flash-warn">CREDIT REQUIRED</div>
+          <div class="lcd-line lcd-main">INSERT 1 ₱ COIN</div>
+          <div class="lcd-line lcd-sub">> FMT: ${fmt.toUpperCase()}</div>
+        `;
+        if (coinRowContainer) {
+          coinRowContainer.classList.remove('locked');
+          coinRowContainer.classList.add('active');
+        }
+      } else if (this.activeStep === 'mode') {
+        consoleLcd.innerHTML = `
+          <div class="lcd-line lcd-status">CREDIT: 1 ₱ OK</div>
+          <div class="lcd-line lcd-main">SELECT MODE</div>
+          <div class="lcd-line lcd-sub">> FMT: ${fmt.toUpperCase()}</div>
+        `;
+        if (coinRowContainer) {
+          coinRowContainer.classList.add('locked');
+          coinRowContainer.classList.remove('active');
+        }
+      }
+
+      // 2. Render Keypad panel buttons dynamically
+      if (this.activeStep === 'format' || this.activeStep === 'coin') {
+        consoleKeypad.innerHTML = `
+          <button class="keypad-btn fmt-btn ${fmt === 'strip' ? 'active' : ''}" data-format="strip">
+            <span class="led-dot"></span>
+            <span class="btn-text">🎞️ STRIP</span>
+          </button>
+          <button class="keypad-btn fmt-btn ${fmt === 'polaroid' ? 'active' : ''}" data-format="polaroid">
+            <span class="led-dot"></span>
+            <span class="btn-text">📸 POLAROID</span>
+          </button>
+          <button class="keypad-btn fmt-btn ${fmt === 'cinematic' ? 'active' : ''}" data-format="cinematic">
+            <span class="led-dot"></span>
+            <span class="btn-text">🎬 CINE</span>
+          </button>
+          <button class="keypad-btn fmt-btn ${fmt === 'postcard' ? 'active' : ''}" data-format="postcard">
+            <span class="led-dot"></span>
+            <span class="btn-text">🎴 POSTCARD</span>
+          </button>
+        `;
+
+        // Bind format button clicks
+        const keys = consoleKeypad.querySelectorAll('.fmt-btn');
+        keys.forEach(key => {
+          key.addEventListener('click', () => {
+            const chosenFmt = key.getAttribute('data-format') as any;
+            this.state.boothFormat = chosenFmt;
+            this.audio.playBeep();
+
+            // Tactile pressed visual loop
+            key.classList.add('pressed');
+            setTimeout(() => key.classList.remove('pressed'), 150);
+
+            // Advance flow step to coin entry
+            this.activeStep = 'coin';
+            syncBackwardsCompatibleMode();
+            updateConsole();
+          });
+        });
+      } else if (this.activeStep === 'mode') {
+        consoleKeypad.innerHTML = `
+          <button class="keypad-btn mode-btn ${md === 'solo' ? 'active' : ''}" data-mode="solo">
+            <span class="led-dot"></span>
+            <span class="btn-text">👤 SOLO</span>
+          </button>
+          <button class="keypad-btn mode-btn ${md === 'duet' ? 'active' : ''}" data-mode="duet">
+            <span class="led-dot"></span>
+            <span class="btn-text">👥 DUET</span>
+          </button>
+        `;
+
+        // Bind mode button clicks
+        const keys = consoleKeypad.querySelectorAll('.mode-btn');
+        keys.forEach(key => {
+          key.addEventListener('click', () => {
+            const chosenMode = key.getAttribute('data-mode') as any;
+            this.state.connectionMode = chosenMode;
+            this.audio.playTypewriter();
+
+            key.classList.add('pressed');
+            setTimeout(() => {
+              key.classList.remove('pressed');
+              proceedStart();
+            }, 180);
+          });
+        });
+      }
     };
-
-    // Bind slider arrow controls
-    formatPrevBtn?.addEventListener('click', () => {
-      currentFmtIndex = (currentFmtIndex - 1 + formats.length) % formats.length;
-      this.audio.playBeep();
-      updateSliderUI(true);
-    });
-
-    formatNextBtn?.addEventListener('click', () => {
-      currentFmtIndex = (currentFmtIndex + 1) % formats.length;
-      this.audio.playBeep();
-      updateSliderUI(true);
-    });
-
-    // Initialize slider position
-    updateSliderUI(false);
-
-    // Bind vintage mode toggle
-    const setMode = (newMode: 'solo' | 'duet') => {
-      if (this.state.connectionMode === newMode) return;
-      this.state.connectionMode = newMode;
-      this.audio.playTypewriter();
-      
-      // Update toggle switch image and play visual feedback
-      if (toggleSwitchImg) {
-        toggleSwitchImg.src = newMode === 'solo' ? leftImg : rightImg;
-        toggleSwitchImg.classList.add('pressed');
-        setTimeout(() => toggleSwitchImg.classList.remove('pressed'), 150);
-      }
-
-      // Update plates
-      plateLeft?.classList.toggle('active', newMode === 'solo');
-      plateRight?.classList.toggle('active', newMode === 'duet');
-
-      // Update hint text
-      if (modeHintText) {
-        modeHintText.textContent = newMode === 'duet' ? '🔗 Link a partner' : '📷 Just you';
-        modeHintText.classList.toggle('duet', newMode === 'duet');
-      }
-
-      syncStateAndMarquee();
-    };
-
-    plateLeft?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setMode('solo');
-    });
-
-    plateRight?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setMode('duet');
-    });
-
-    modeToggle?.addEventListener('click', () => {
-      const newMode = this.state.connectionMode === 'solo' ? 'duet' : 'solo';
-      setMode(newMode);
-    });
 
     let coinCredited = false;
 
-    // Start action
+    // Start action via Curtains
     const startAction = () => {
+      if (this.activeStep === 'format') {
+        this.audio.playBeep();
+        const lcdMain = container.querySelector('.lcd-main') as HTMLElement;
+        if (lcdMain) {
+          lcdMain.classList.add('flash-warn');
+          setTimeout(() => lcdMain.classList.remove('flash-warn'), 600);
+        }
+        return;
+      }
+
       if (!coinCredited) {
         insertCoin();
-        this.audio.playTypewriter();
-        setTimeout(() => {
-          proceedStart();
-        }, 500);
       } else {
-        this.audio.playTypewriter();
-        proceedStart();
+        if (this.activeStep === 'mode') {
+          this.audio.playTypewriter();
+          proceedStart();
+        }
       }
     };
 
@@ -250,6 +255,11 @@ export class LandingView implements AppView {
 
     const insertCoin = () => {
       if (coinCredited) return;
+      if (this.activeStep !== 'coin') {
+        this.audio.playBeep();
+        return;
+      }
+
       coinCredited = true;
       this.audio.playCoinDrop();
       
@@ -258,7 +268,6 @@ export class LandingView implements AppView {
       const helperText = container.querySelector('.coin-helper-text') as HTMLElement;
 
       if (coin) {
-        // Calculate the physical offset between the coin and the entry slot dynamically
         const coinRect = coin.getBoundingClientRect();
         const slotRect = slot.getBoundingClientRect();
         const deltaX = slotRect.left + slotRect.width / 2 - (coinRect.left + coinRect.width / 2);
@@ -278,16 +287,25 @@ export class LandingView implements AppView {
       }
 
       setTimeout(() => {
-        proceedStart();
+        this.activeStep = 'mode';
+        updateConsole();
       }, 800);
     };
 
-    // Drag and Drop implementation
+    // Initialize the console UI
+    updateConsole();
+
+    // Drag and Drop handlers
     const coinEl = container.querySelector('#quarterCoin') as HTMLElement;
     const slotEl = container.querySelector('#coinSlot') as HTMLElement;
 
     if (coinEl && slotEl) {
       coinEl.addEventListener('dragstart', (e: DragEvent) => {
+        if (this.activeStep !== 'coin') {
+          e.preventDefault();
+          this.audio.playBeep();
+          return;
+        }
         e.dataTransfer?.setData('text/plain', 'coin');
         this.audio.playTypewriter();
         coinEl.classList.add('dragging');
@@ -323,6 +341,10 @@ export class LandingView implements AppView {
       let isTouchDragging = false;
 
       coinEl.addEventListener('touchstart', (e: TouchEvent) => {
+        if (this.activeStep !== 'coin') {
+          this.audio.playBeep();
+          return;
+        }
         const touch = e.touches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
@@ -345,7 +367,6 @@ export class LandingView implements AppView {
         coinEl.style.top = `${coinStartY + dy}px`;
         coinEl.style.zIndex = '9999';
 
-        // Overlap check
         const slotRect = slotEl.getBoundingClientRect();
         if (
           touch.clientX >= slotRect.left &&
@@ -385,9 +406,17 @@ export class LandingView implements AppView {
 
       // Quick auto-insert click trigger
       coinEl.addEventListener('click', () => {
+        if (this.activeStep !== 'coin') {
+          this.audio.playBeep();
+          return;
+        }
         insertCoin();
       });
       slotEl.addEventListener('click', () => {
+        if (this.activeStep !== 'coin') {
+          this.audio.playBeep();
+          return;
+        }
         insertCoin();
       });
     }
@@ -404,7 +433,6 @@ export class LandingView implements AppView {
       if (!files || files.length === 0) return;
 
       const isPolaroid = this.state.boothMode === 'polaroid';
-      // Reset duet selection to classic strip upon digital upload triggers
       if (this.state.boothMode === 'duet') {
         this.state.boothMode = 'strip';
       }
@@ -426,10 +454,7 @@ export class LandingView implements AppView {
           fileArray.map(file => this.readFileAsDataUrl(file))
         );
 
-        // Update state
         this.state.capturedFrames = loadedUrls;
-
-        // Go directly to customize
         this.onViewChange('customize');
       } catch (err) {
         console.error('Failed to load uploaded photos:', err);

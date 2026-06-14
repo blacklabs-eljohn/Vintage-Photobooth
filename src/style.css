@@ -524,216 +524,212 @@ body::after {
   user-select: none;
 }
 
-/* Symmetrical Horizontal Template Slider */
-.tablet-format-slider {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 4px;
+/* Embedded Touchscreen Console (Calculator Casing) */
+.cabinet-tablet-console.calculator-console {
+  background: #1c2024; /* dark industrial plastic casing */
+  border: 3.5px solid #111417;
+  border-radius: 8px;
+  width: 126px;
+  padding: 8px;
   box-sizing: border-box;
-  z-index: 3;
-  padding: 0 2px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow:
+    inset 0 1.5px 3px rgba(255,255,255,0.15),
+    0 4px 10px rgba(0,0,0,0.65),
+    inset 0 -4px 12px rgba(0,0,0,0.45);
+  position: relative;
+  overflow: hidden;
 }
 
-.slider-arrow {
-  background: linear-gradient(to bottom, #444, #222);
-  border: 1px solid #111;
-  color: #bbb;
-  font-size: 0.45rem;
-  padding: 4px 2px;
-  cursor: pointer;
-  border-radius: 3px;
+/* CRT scanlines and glass reflection overlay for LCD */
+.cabinet-tablet-console.calculator-console::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  z-index: 5;
+  border-radius: 6px;
+}
+
+/* Retro Matrix LCD Screen */
+.console-lcd-screen {
+  background: #08100c; /* dark matrix LCD background */
+  border: 2px solid #0f1612;
+  border-radius: 4px;
+  width: 100%;
+  padding: 6px 4px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+  position: relative;
+  box-shadow: 
+    inset 0 2.5px 5px rgba(0,0,0,0.95),
+    0 1px 2px rgba(255,255,255,0.04);
+  z-index: 3;
+}
+
+.lcd-line {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  text-transform: uppercase;
+  line-height: 1.25;
   user-select: none;
-  line-height: 1;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  transition: all 0.2s ease;
-  width: 15px;
-  height: 22px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 4px rgba(74, 222, 128, 0.45);
+}
+
+.lcd-status {
+  font-size: 0.35rem; /* tiny indicators */
+  color: #4ade80;
+  opacity: 0.6;
+}
+
+.lcd-main {
+  font-size: 0.52rem; /* primary message */
+  color: #5cd65c;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.lcd-sub {
+  font-size: 0.42rem; /* helper data row */
+  color: #22c55e;
+  opacity: 0.85;
+}
+
+/* Warning alert flash on LCD */
+.lcd-line.flash-warn {
+  animation: lcd-blink-red 0.6s infinite steps(2);
+}
+
+@keyframes lcd-blink-red {
+  0%, 100% { 
+    color: #f87171; 
+    text-shadow: 0 0 5px rgba(248, 113, 113, 0.6); 
+  }
+  50% { 
+    color: #7f1d1d; 
+    text-shadow: none; 
+  }
+}
+
+/* Calculator Keypad Grid Container */
+.console-keypad {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 6px;
+  z-index: 3;
+  box-sizing: border-box;
+}
+
+/* Tactile Raised Vending Key buttons */
+.keypad-btn {
+  position: relative;
+  width: 100%;
+  height: 25px;
+  background: linear-gradient(to bottom, #3a3f47 0%, #292d33 100%);
+  border: 1px solid #181a1f;
+  border-radius: 4px;
+  color: #cbd5e1;
+  font-family: var(--font-sans);
+  font-size: 0.46rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  padding: 0 8px;
+  gap: 6px;
+  box-sizing: border-box;
+  box-shadow:
+    0 2px 0px #131518,
+    0 3px 4px rgba(0,0,0,0.55),
+    inset 0 1px 1px rgba(255,255,255,0.12);
+  transition: all 0.08s ease;
+  user-select: none;
+  outline: none;
 }
 
-.slider-arrow:hover {
-  background: linear-gradient(to bottom, #555, #333);
+.keypad-btn:hover {
+  background: linear-gradient(to bottom, #454b54 0%, #30353d 100%);
   color: #fff;
   border-color: #000;
 }
 
-.slider-arrow:active {
-  background: #111;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
-}
-
-.slider-viewport {
-  flex-grow: 1;
-  overflow: hidden;
-  height: 22px;
-  border-radius: 4px;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  position: relative;
-  box-sizing: border-box;
-}
-
-.slider-track {
-  display: flex;
-  width: 100%;
-  height: 100%;
-}
-
-.format-slide-card {
-  flex: 0 0 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #aabccf;
-  font-family: var(--font-sans);
-  font-size: 0.54rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  user-select: none;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-  opacity: 0.55;
-  filter: grayscale(80%);
-}
-
-.format-slide-card.active {
-  opacity: 1;
-  filter: grayscale(0%);
-}
-
-/* Glowing active slide configurations */
-.format-slide-card.active.active-strip {
+/* Active backlit selection press */
+.keypad-btn.active {
+  background: linear-gradient(to bottom, #25282f 0%, #17191e 100%);
+  border-color: #0c0d10;
   color: #fff;
-  background: rgba(211, 84, 0, 0.15);
-  text-shadow: 0 0 3px rgba(230, 126, 34, 0.8);
-  box-shadow: inset 0 0 4px rgba(230, 126, 34, 0.3);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.85),
+    inset 0 -0.5px 0.5px rgba(255,255,255,0.05);
 }
 
-.format-slide-card.active.active-polaroid {
-  color: #fff;
-  background: rgba(241, 196, 15, 0.12);
-  text-shadow: 0 0 3px rgba(241, 196, 15, 0.8);
-  box-shadow: inset 0 0 4px rgba(241, 196, 15, 0.3);
+.keypad-btn.pressed,
+.keypad-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0px 0px transparent,
+    0 1px 2px rgba(0,0,0,0.35),
+    inset 0 2px 3px rgba(0,0,0,0.7);
 }
 
-.format-slide-card.active.active-cinematic {
-  color: #fff;
-  background: rgba(6, 182, 212, 0.12);
-  text-shadow: 0 0 3px rgba(6, 182, 212, 0.8);
-  box-shadow: inset 0 0 4px rgba(6, 182, 212, 0.3);
-}
-
-.format-slide-card.active.active-postcard {
-  color: #fff;
-  background: rgba(16, 185, 129, 0.12);
-  text-shadow: 0 0 3px rgba(16, 185, 129, 0.8);
-  box-shadow: inset 0 0 4px rgba(16, 185, 129, 0.3);
-}
-
-/* Industrial Metal Toggle Switch (Solo / Duet) — Horizontal */
-.toggle-switch-unit {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-  cursor: pointer;
-  z-index: 3;
-  user-select: none;
-  padding: 2px 2px;
-}
-
-/* Label plates (like stamped metal tags) */
-.toggle-label-plate {
-  font-family: var(--font-typewriter);
-  font-size: 0.38rem;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 3px 5px;
-  border-radius: 2px;
-  color: #666;
-  background: linear-gradient(to bottom, #3a3d44, #2a2d33);
-  border: 1px solid #1a1c20;
-  transition: all 0.3s ease;
-  line-height: 1.3;
-  min-width: 33px;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.led-dot {
-  width: 3px;
-  height: 3px;
+/* Built-in LED Dot indicator bulb */
+.keypad-btn .led-dot {
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background-color: #222;
-  box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
-  transition: all 0.3s ease;
+  background-color: #111317; /* unlit dark socket */
+  box-shadow: inset 0 1px 1.5px rgba(0,0,0,0.7);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
   display: inline-block;
-  flex-shrink: 0;
 }
 
-.toggle-label-plate.active {
-  color: #fff;
-  background: linear-gradient(to bottom, #3b82f6, #2563eb);
-  border-color: #1d4ed8;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.35);
+/* Glowing green bulb when selected */
+.keypad-btn.active .led-dot {
+  background-color: #39e75f;
+  box-shadow: 
+    0 0 6px rgba(57, 231, 95, 0.85),
+    inset 0 0.5px 1px #fff;
 }
 
-.toggle-label-plate.active .led-dot {
-  background-color: #60a5fa;
-  box-shadow: 0 0 4px #3b82f6, inset 0 0.5px 1px #fff;
+/* Special amber bulb glow for duet mode option */
+.keypad-btn.active[data-mode="duet"] .led-dot {
+  background-color: #f59e0b;
+  box-shadow: 
+    0 0 6px rgba(245, 158, 11, 0.85),
+    inset 0 0.5px 1px #fff;
 }
 
-.toggle-label-plate.plate-right.active {
-  background: linear-gradient(to bottom, #f59e0b, #d97706);
-  border-color: #b45309;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.35);
-}
-
-.toggle-label-plate.plate-right.active .led-dot {
-  background-color: #fbbf24;
-  box-shadow: 0 0 4px #f59e0b, inset 0 0.5px 1px #fff;
-}
-
-/* Image-Based Toggle Switch Styling */
-.toggle-switch-img-wrapper {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.toggle-switch-img {
-  width: 100%;
-  height: auto;
-  display: block;
-  user-select: none;
+/* Coin Acceptor drawer locking based on active steps */
+.coin-row-container.locked {
+  opacity: 0.15;
   pointer-events: none;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: grayscale(80%);
+  transition: all 0.35s ease;
 }
 
-.toggle-switch-unit:hover .toggle-switch-img {
-  filter: brightness(1.1);
-}
-
-.toggle-switch-img.pressed {
-  transform: scale(0.85);
+.coin-row-container.active {
+  opacity: 1;
+  pointer-events: auto;
+  filter: grayscale(0%);
+  transition: all 0.35s ease;
 }
 
 /* Mode hint text below toggle */
