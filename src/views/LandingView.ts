@@ -5,7 +5,6 @@ export class LandingView implements AppView {
   private state: AppState;
   private audio: AudioManager;
   private onViewChange: (view: 'camera-setup' | 'customize') => void;
-  private coinInserted: boolean = false;
 
   constructor(
     state: AppState,
@@ -30,25 +29,21 @@ export class LandingView implements AppView {
  
           <!-- The Physical Photobooth Cabinet facade -->
           <div class="booth-cabinet" id="cabinetBody">
-            <!-- Left panel: Control Board (Arcade Button, Coin Slot, Dispenser) -->
+            <!-- Left panel: Control Board (Tablet Console, Start Button, Dispenser) -->
             <div class="cabinet-panel-left">
-              <!-- Coin slot door with LED credit screen -->
-              <div class="coin-door-wrapper">
-                <div class="arcade-led-display" id="coinLedDisplay">insert coin</div>
-                <div class="coin-slot" id="coinSlotBtn" title="Insert Coin (Click to Insert)"></div>
-                <div class="coin-return"></div>
-              </div>
-
-              <!-- Mode Selector -->
-              <div class="cabinet-mode-selector" id="modeSelectorPanel">
-                <span class="mode-label">Booth Mode</span>
-                <button class="mode-btn ${isStrip ? 'active' : ''}" id="modeStripBtn" title="3-Shot Photostrip">🎞️ Strip</button>
-                <button class="mode-btn ${!isStrip ? 'active' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
+              <!-- Embedded Touchscreen Console -->
+              <div class="cabinet-tablet-console" id="tabletConsole">
+                <span class="tablet-screen-title">Select Mode</span>
+                <div class="tablet-mode-cards">
+                  <button class="tablet-mode-card ${isStrip ? 'active-strip' : ''}" id="modeStripBtn" title="3-Shot Photostrip">🎞️ Strip</button>
+                  <button class="tablet-mode-card ${!isStrip ? 'active-polaroid' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
+                </div>
+                <span class="tablet-marquee">Tap to choose</span>
               </div>
  
               <!-- Start Button -->
               <div class="arcade-start-button-wrapper">
-                <button class="arcade-start-btn locked" id="arcadeStartBtn" title="Start Session"></button>
+                <button class="arcade-start-btn" id="arcadeStartBtn" title="Start Session"></button>
                 <span class="arcade-btn-label">START</span>
               </div>
  
@@ -56,8 +51,8 @@ export class LandingView implements AppView {
               <div class="paper-dispenser" title="Photo Strip Exit"></div>
             </div>
  
-            <!-- Right panel: Draped curtains doorway (starts locked) -->
-            <div class="cabinet-panel-right locked" id="cabinetCurtainDoor" title="Step Inside">
+            <!-- Right panel: Draped curtains doorway -->
+            <div class="cabinet-panel-right" id="cabinetCurtainDoor" title="Step Inside">
               <div class="cabinet-curtain"></div>
               <div class="booth-shadow-bottom"></div>
             </div>
@@ -77,62 +72,34 @@ export class LandingView implements AppView {
     // Hook elements
     const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
-    const coinSlotBtn = container.querySelector('#coinSlotBtn') as HTMLElement;
-    const coinLedDisplay = container.querySelector('#coinLedDisplay') as HTMLElement;
     const uploadPhotosBtn = container.querySelector('#uploadPhotosBtn');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
+    const tabletMarquee = container.querySelector('.tablet-marquee') as HTMLElement;
 
     const modeStripBtn = container.querySelector('#modeStripBtn') as HTMLButtonElement;
     const modePolaroidBtn = container.querySelector('#modePolaroidBtn') as HTMLButtonElement;
- 
-    // Insert Coin action
-    coinSlotBtn?.addEventListener('click', () => {
-      if (this.coinInserted) return;
-      this.coinInserted = true;
- 
-      // Play arcade metallic coin drop chime
-      this.audio.playCoinDrop();
- 
-      // Enable LED status and button animations
-      if (coinLedDisplay) {
-        coinLedDisplay.innerText = 'ready';
-        coinLedDisplay.classList.add('ready');
-      }
-      arcadeStartBtn?.classList.remove('locked');
-      cabinetCurtainDoor?.classList.remove('locked');
-    });
 
-    // Mode Selector actions
+    // Mode Selector actions on the tablet console
     modeStripBtn?.addEventListener('click', () => {
       if (this.state.boothMode === 'strip') return;
-      this.audio.playTypewriter();
+      this.audio.playBeep();
       this.state.boothMode = 'strip';
-      modeStripBtn.classList.add('active');
-      modePolaroidBtn.classList.remove('active');
+      modeStripBtn.classList.add('active-strip');
+      modePolaroidBtn.classList.remove('active-polaroid');
+      if (tabletMarquee) tabletMarquee.textContent = '▶ Strip ready';
     });
 
     modePolaroidBtn?.addEventListener('click', () => {
       if (this.state.boothMode === 'polaroid') return;
-      this.audio.playTypewriter();
+      this.audio.playBeep();
       this.state.boothMode = 'polaroid';
-      modePolaroidBtn.classList.add('active');
-      modeStripBtn.classList.remove('active');
+      modePolaroidBtn.classList.add('active-polaroid');
+      modeStripBtn.classList.remove('active-strip');
+      if (tabletMarquee) tabletMarquee.textContent = '▶ Polaroid ready';
     });
  
+    // Start action — always available (no coin gate)
     const startAction = () => {
-      if (!this.coinInserted) {
-        // Warning feedback: tick sound and shake coin door wrapper
-        this.audio.playTick();
-        
-        const coinDoor = container.querySelector('.coin-door-wrapper');
-        if (coinDoor) {
-          coinDoor.classList.remove('shake-warning');
-          void (coinDoor as HTMLElement).offsetWidth; // force reflow
-          coinDoor.classList.add('shake-warning');
-          setTimeout(() => coinDoor.classList.remove('shake-warning'), 500);
-        }
-        return;
-      }
       this.audio.playTypewriter();
       this.onViewChange('camera-setup');
     };

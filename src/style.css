@@ -386,120 +386,124 @@ body::after {
   box-shadow: inset -6px 0 12px rgba(0,0,0,0.15);
 }
 
-/* Coin slot component */
-.coin-door-wrapper {
-  background: #23252a;
-  border: 2px solid #5a5f6b;
-  border-radius: 4px;
-  width: 80px;
-  height: 120px;
-  padding: 8px 6px;
+/* Embedded Touchscreen Console */
+.cabinet-tablet-console {
+  background: #0a0c10;
+  border: 3px solid #3a3f4b;
+  border-radius: 6px;
+  width: 84px;
+  padding: 6px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+  gap: 6px;
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,0.9),
+    0 0 8px rgba(100, 180, 255, 0.08);
+  position: relative;
+  overflow: hidden;
 }
 
-.arcade-led-display {
-  background: #0d0101;
-  border: 1.5px solid #451a1a;
-  border-radius: 2px;
-  color: #ef4444;
+/* CRT Scanline overlay */
+.cabinet-tablet-console::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  z-index: 2;
+  border-radius: 4px;
+}
+
+.tablet-screen-title {
   font-family: var(--font-led);
-  font-size: 0.65rem;
-  padding: 2px 4px;
-  text-align: center;
-  width: 100%;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.9);
+  font-size: 0.5rem;
+  color: #64b5f6;
+  text-shadow: 0 0 4px rgba(100, 181, 246, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 3px #ef4444;
-  animation: led-blink 1.4s infinite steps(2);
+  text-align: center;
   user-select: none;
 }
 
-@keyframes led-blink {
-  0%, 100% { opacity: 0.35; }
+.tablet-mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  z-index: 3;
+}
+
+.tablet-mode-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #8899aa;
+  font-family: var(--font-sans);
+  font-size: 0.5rem;
+  padding: 5px 4px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  user-select: none;
+  position: relative;
+}
+
+.tablet-mode-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ccd6e0;
+}
+
+.tablet-mode-card.active-strip {
+  background: rgba(211, 84, 0, 0.15);
+  border-color: #e67e22;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(230, 126, 34, 0.5), inset 0 0 6px rgba(230, 126, 34, 0.15);
+  text-shadow: 0 0 3px rgba(230, 126, 34, 0.6);
+}
+
+.tablet-mode-card.active-polaroid {
+  background: rgba(241, 196, 15, 0.12);
+  border-color: #f1c40f;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(241, 196, 15, 0.5), inset 0 0 6px rgba(241, 196, 15, 0.1);
+  text-shadow: 0 0 3px rgba(241, 196, 15, 0.6);
+}
+
+.tablet-marquee {
+  font-family: var(--font-led);
+  font-size: 0.38rem;
+  color: #4ade80;
+  text-shadow: 0 0 3px rgba(74, 222, 128, 0.5);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  animation: marquee-blink 2s infinite steps(2);
+  user-select: none;
+  z-index: 3;
+}
+
+@keyframes marquee-blink {
+  0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
-
-.arcade-led-display.ready {
-  color: #22c55e;
-  border-color: #1a452a;
-  text-shadow: 0 0 4px #22c55e;
-  animation: none;
-  opacity: 1;
-}
-
-.coin-slot {
-  width: 45px;
-  height: 25px;
-  background: #111215;
-  border: 1.5px solid #bdc3c7;
-  position: relative;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-
-.coin-slot:hover {
-  border-color: #f1c40f;
-  box-shadow: 0 0 5px rgba(241, 196, 15, 0.4);
-}
-
-.coin-slot:active {
-  transform: scale(0.96);
-}
-
-.coin-slot::after {
-  content: "";
-  position: absolute;
-  top: 4px;
-  left: 20px;
-  width: 3px;
-  height: 14px;
-  background: #f1c40f;
-  box-shadow: 0 0 4px #f1c40f;
-}
-
-.coin-return {
-  width: 45px;
-  height: 28px;
-  background: #191b1f;
-  border: 1.5px solid #4a505b;
-  border-radius: 2px;
-  position: relative;
-}
-
-.coin-return::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 10px;
-  width: 23px;
-  height: 12px;
-  background: #111215;
-  border-radius: 1px;
-}
-
-.shake-warning {
-  animation: coin-door-shake 0.4s ease;
-}
-
-@keyframes coin-door-shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
-}
-
 /* Mechanical blinking START button */
 .arcade-start-button-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-top: -10px;
 }
 
 .arcade-start-btn {
@@ -507,7 +511,7 @@ body::after {
   height: 54px;
   border-radius: 50%;
   background: radial-gradient(circle, #2ecc71 30%, #27ae60 100%);
-  border: 4px solid #e2e8f0; /* chrome ring */
+  border: 4px solid #e2e8f0;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.4);
   cursor: pointer;
   position: relative;
@@ -533,25 +537,6 @@ body::after {
   background: #27ae60;
 }
 
-.arcade-start-btn.locked {
-  background: radial-gradient(circle, #3d5043 30%, #203325 100%) !important;
-  border-color: #7f8c8d !important;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.2) !important;
-  cursor: not-allowed !important;
-  animation: none !important;
-  pointer-events: none;
-  filter: brightness(0.65);
-}
-
-.cabinet-panel-right.locked {
-  cursor: not-allowed;
-}
-
-.cabinet-panel-right.locked:hover .cabinet-curtain {
-  transform: none !important;
-  animation: none !important;
-}
-
 .arcade-btn-label {
   font-family: var(--font-typewriter);
   color: #23252a;
@@ -575,6 +560,7 @@ body::after {
   width: 90px;
   height: 45px;
   position: relative;
+  margin-top: -6px;
   box-shadow: inset 0 3px 8px rgba(0,0,0,0.8);
   display: flex;
   justify-content: center;
@@ -1622,68 +1608,6 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid hsl(var(--accent-brown));
   outline-offset: 2px;
-}
-
-/* --- Polaroid Mode & Pre-Booth Selector styles --- */
-.cabinet-mode-selector {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  background: #23252a;
-  border: 2px solid #5a5f6b;
-  border-radius: 4px;
-  padding: 6px;
-  width: 80px;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
-  user-select: none;
-}
-
-.mode-label {
-  font-family: var(--font-led);
-  font-size: 0.5rem;
-  color: #dfd3c8;
-  margin-bottom: 2px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  text-align: center;
-}
-
-.mode-btn {
-  width: 100%;
-  background: #34495e;
-  border: 1px solid #7f8c8d;
-  border-radius: 3px;
-  color: #95a5a6;
-  font-family: var(--font-sans);
-  font-size: 0.5rem;
-  padding: 4px 2px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.mode-btn:hover {
-  border-color: #bdc3c7;
-  color: #ecf0f1;
-}
-
-.mode-btn.active#modeStripBtn {
-  background: #d35400; /* Glowing amber/orange */
-  border-color: #e67e22;
-  color: #fff;
-  box-shadow: 0 0 10px rgba(211, 84, 0, 0.9), inset 0 1px 1px rgba(255,255,255,0.4);
-  text-shadow: 0 0 2px #fff;
-}
-
-.mode-btn.active#modePolaroidBtn {
-  background: #f1c40f; /* Glowing warm yellow */
-  border-color: #f39c12;
-  color: #23252a;
-  box-shadow: 0 0 10px rgba(241, 196, 15, 0.9), inset 0 1px 1px rgba(255,255,255,0.4);
-  text-shadow: 0 0 1.5px rgba(255,255,255,0.5);
 }
 
 /* Polaroid Live Preview Styles */

@@ -385,4 +385,41 @@ export class AudioManager {
       console.warn('Failed to play paper tear sound:', e);
     }
   }
+
+  // Synthesize a retro digital beep for touchscreen UI selections
+  public playBeep() {
+    if (this.muted) return;
+    try {
+      const ctx = this.initContext();
+      const now = ctx.currentTime;
+
+      // Dual-tone beep (like a retro arcade select sound)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(880, now);
+      osc1.frequency.setValueAtTime(1320, now + 0.04);
+
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1760, now);
+      osc2.frequency.setValueAtTime(2200, now + 0.04);
+
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.13);
+      osc2.stop(now + 0.13);
+    } catch (e) {
+      console.warn('Failed to play beep sound:', e);
+    }
+  }
 }
