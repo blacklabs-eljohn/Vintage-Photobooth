@@ -6,6 +6,11 @@ export class ResultView implements AppView {
   private audio: AudioManager;
   private onRestart: () => void;
 
+  private isTorn: boolean = false;
+  private isDragging: boolean = false;
+  private startY: number = 0;
+  private currentPullHeight: number = 180; // matches initial slide-out halfway (180px)
+
   constructor(state: AppState, audio: AudioManager, onRestart: () => void) {
     this.state = state;
     this.audio = audio;
@@ -33,16 +38,14 @@ export class ResultView implements AppView {
             <img src="${stripUrl}" class="print-strip-result" id="resultStripImg" alt="Your Vintage Photostrip" />
           </div>
 
-          <!-- Actions -->
-          <div class="result-actions">
+          <!-- Drag Tear Instruction Prompt -->
+          <div class="pull-strip-label" id="tearPrompt">⬇️ Pull strip to tear off ⬇️</div>
+
+          <!-- Actions (Starts locked until torn) -->
+          <div class="result-actions locked" id="actionsPanel">
             <button id="downloadBtn" class="btn-primary">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download Photostrip
-            </button>
-
-            <button id="downloadGifBtn" class="btn-secondary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-              Download GIF Slideshow
             </button>
             
             <div class="result-share-row">
@@ -63,16 +66,75 @@ export class ResultView implements AppView {
     `;
 
     const printerDelivery = container.querySelector('#printerDelivery') as HTMLElement;
+    const tearPrompt = container.querySelector('#tearPrompt') as HTMLElement;
+    const actionsPanel = container.querySelector('#actionsPanel') as HTMLElement;
     const downloadBtn = container.querySelector('#downloadBtn');
-    const downloadGifBtn = container.querySelector('#downloadGifBtn') as HTMLButtonElement;
     const shareBtn = container.querySelector('#shareBtn');
     const startOverBtn = container.querySelector('#startOverBtn');
 
-    // Trigger printing animation and dispenser audio whirr
+    // Trigger printing animation and dispenser audio whirr (half-slide)
     requestAnimationFrame(() => {
       printerDelivery?.classList.add('show');
       this.audio.playDispenser();
     });
+
+    // Hook Pointer Drag Events for physical paper pulling
+    const handleDragStart = (e: PointerEvent) => {
+      if (this.isTorn) return;
+      this.isDragging = true;
+      this.startY = e.clientY;
+      printerDelivery.classList.add('dragging');
+      printerDelivery.classList.remove('springback');
+      printerDelivery.setPointerCapture(e.pointerId);
+    };
+
+    const handleDragMove = (e: PointerEvent) => {
+      if (!this.isDragging || this.isTorn) return;
+      const diffY = e.clientY - this.startY;
+      if (diffY > 0) {
+        // User pulls downward: stretch height dynamically from 180px up to 320px
+        this.currentPullHeight = Math.min(180 + diffY, 320);
+        printerDelivery.style.height = `${this.currentPullHeight}px`;
+      }
+    };
+
+    const handleDragEnd = (e: PointerEvent) => {
+      if (!this.isDragging || this.isTorn) return;
+      this.isDragging = false;
+      printerDelivery.classList.remove('dragging');
+      printerDelivery.releasePointerCapture(e.pointerId);
+
+      const pullDistance = this.currentPullHeight - 180;
+      if (pullDistance >= 70) {
+        // Tear off!
+        this.isTorn = true;
+        
+        // Play physical rip sound
+        this.audio.playPaperTear();
+        
+        // Full stretch slide-down
+        printerDelivery.style.height = ''; // Let class control it
+        printerDelivery.classList.add('torn');
+        
+        // Hide tear prompt and unlock action buttons
+        if (tearPrompt) tearPrompt.style.display = 'none';
+        actionsPanel?.classList.remove('locked');
+      } else {
+        // Spring back to 180px
+        printerDelivery.classList.add('springback');
+        this.currentPullHeight = 180;
+        printerDelivery.style.height = '180px';
+        setTimeout(() => {
+          printerDelivery.classList.remove('springback');
+          printerDelivery.style.height = ''; // return control to CSS
+        }, 300);
+      }
+    };
+
+    printerDelivery.addEventListener('pointerdown', handleDragStart);
+    printerDelivery.addEventListener('pointermove', handleDragMove);
+    printerDelivery.addEventListener('pointerup', handleDragEnd);
+    printerDelivery.addEventListener('pointercancel', handleDragEnd);
 
     // 1. Download Photostrip
     downloadBtn?.addEventListener('click', () => {
@@ -86,17 +148,7 @@ export class ResultView implements AppView {
       document.body.removeChild(link);
     });
 
-    // 2. Download GIF Slideshow
-    downloadGifBtn?.addEventListener('click', () => {
-      this.audio.playTypewriter();
-      if (this.state.gifUrl) {
-        this.downloadGif();
-      } else {
-        this.compileGif(container);
-      }
-    });
-
-    // 3. Share
+    // 2. Share
     shareBtn?.addEventListener('click', async () => {
       this.audio.playTypewriter();
       
@@ -124,138 +176,10 @@ export class ResultView implements AppView {
       }
     });
 
-    // 4. Start Over
+    // 3. Start Over
     startOverBtn?.addEventListener('click', () => {
       this.audio.playTypewriter();
       this.onRestart();
     });
-  }
-
-  private async compileGif(container: HTMLElement) {
-    const downloadGifBtn = container.querySelector('#downloadGifBtn') as HTMLButtonElement;
-    if (!downloadGifBtn) return;
-
-    downloadGifBtn.disabled = true;
-    downloadGifBtn.innerHTML = `
-      <svg class="chem-loader-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin-loader 0.8s linear infinite; margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-      Compiling GIF...
-    `;
-
-    try {
-      // Load gifshot dynamically via esm.sh
-      // @ts-ignore
-      const gifshotModule = await import('https://esm.sh/gifshot@0.4.5');
-      const gifshot = gifshotModule.default || gifshotModule;
-
-      // Preprocess each frame to apply canvas-based filters
-      const processedFrames = await Promise.all(
-        this.state.capturedFrames.map((frameUrl) => this.preprocessFrameForGif(frameUrl))
-      );
-
-      gifshot.createGIF({
-        images: processedFrames,
-        gifWidth: 400,
-        gifHeight: 300,
-        interval: 0.5, // 500ms slide intervals
-        numFrames: 3,
-        frameDuration: 5,
-        sampleInterval: 10
-      }, (obj: any) => {
-        if (obj.error) {
-          console.error('Gifshot failed:', obj.error);
-          alert('Failed to generate GIF. Please try again!');
-          this.resetGifButton(downloadGifBtn);
-        } else {
-          this.state.gifUrl = obj.image;
-          this.downloadGif();
-          this.resetGifButton(downloadGifBtn, true);
-        }
-      });
-    } catch (err) {
-      console.error('Failed to compile GIF dynamically:', err);
-      alert('GIF compiler is temporarily unavailable. Please try again later!');
-      this.resetGifButton(downloadGifBtn);
-    }
-  }
-
-  private resetGifButton(btn: HTMLButtonElement, success = false) {
-    btn.disabled = false;
-    btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      ${success ? 'GIF Downloaded' : 'Download GIF Slideshow'}
-    `;
-  }
-
-  private downloadGif() {
-    if (!this.state.gifUrl) return;
-    const link = document.createElement('a');
-    link.download = `retrolens-${Date.now()}.gif`;
-    link.href = this.state.gifUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  private preprocessFrameForGif(frameUrl: string): Promise<string> {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 300;
-        const ctx = canvas.getContext('2d')!;
-
-        // Apply filters
-        const settings = this.state.stripSettings;
-        ctx.filter = this.getCanvasFilterString(settings.themeId);
-        ctx.drawImage(img, 0, 0, 400, 300);
-        ctx.filter = 'none'; // reset filter for overlays
-
-        // Draw light leak if enabled
-        if (settings.lightLeaks) {
-          const leakGrad = ctx.createRadialGradient(0, 300, 0, 0, 300, 200);
-          leakGrad.addColorStop(0, 'rgba(255, 90, 0, 0.35)');
-          leakGrad.addColorStop(0.4, 'rgba(255, 170, 0, 0.12)');
-          leakGrad.addColorStop(1, 'transparent');
-          ctx.fillStyle = leakGrad;
-          ctx.globalCompositeOperation = 'screen';
-          ctx.fillRect(0, 0, 400, 300);
-          ctx.globalCompositeOperation = 'source-over'; // reset
-        }
-
-        // Draw dust and scratches if enabled
-        if (settings.dustAndScratches) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-          ctx.lineWidth = 0.55;
-          ctx.beginPath();
-          ctx.moveTo(Math.random() * 400, 0);
-          ctx.lineTo(Math.random() * 400, 300);
-          ctx.stroke();
-
-          ctx.fillStyle = 'rgba(0,0,0,0.15)';
-          for (let d = 0; d < 8; d++) {
-            ctx.fillRect(Math.random() * 400, Math.random() * 300, 1.5, 1.5);
-          }
-        }
-
-        resolve(canvas.toDataURL('image/jpeg', 0.9));
-      };
-      img.src = frameUrl;
-    });
-  }
-
-  private getCanvasFilterString(themeId: string): string {
-    switch (themeId) {
-      case 'bw':
-        return 'grayscale(1) contrast(1.2) brightness(1.02)';
-      case 'warm':
-        return 'sepia(0.3) contrast(1.08) saturate(1.15) brightness(0.98)';
-      case 'sepia':
-        return 'sepia(1) contrast(0.95) brightness(0.95)';
-      case 'retro':
-        return 'hue-rotate(-10deg) saturate(1.3) contrast(1.1) brightness(1.02)';
-      default:
-        return 'none';
-    }
   }
 }

@@ -5,6 +5,7 @@ export class LandingView implements AppView {
   private state: AppState;
   private audio: AudioManager;
   private onViewChange: (view: 'camera-setup' | 'customize') => void;
+  private coinInserted: boolean = false;
 
   constructor(
     state: AppState,
@@ -29,15 +30,16 @@ export class LandingView implements AppView {
           <div class="booth-cabinet" id="cabinetBody">
             <!-- Left panel: Control Board (Arcade Button, Coin Slot, Dispenser) -->
             <div class="cabinet-panel-left">
-              <!-- Coin slot -->
+              <!-- Coin slot door with LED credit screen -->
               <div class="coin-door-wrapper">
-                <div class="coin-slot"></div>
+                <div class="arcade-led-display" id="coinLedDisplay">insert coin</div>
+                <div class="coin-slot" id="coinSlotBtn" title="Insert Coin (Click to Insert)"></div>
                 <div class="coin-return"></div>
               </div>
 
               <!-- Start Button -->
               <div class="arcade-start-button-wrapper">
-                <button class="arcade-start-btn" id="arcadeStartBtn" title="Start Session"></button>
+                <button class="arcade-start-btn locked" id="arcadeStartBtn" title="Start Session"></button>
                 <span class="arcade-btn-label">START</span>
               </div>
 
@@ -45,15 +47,14 @@ export class LandingView implements AppView {
               <div class="paper-dispenser" title="Photo Strip Exit"></div>
             </div>
 
-            <!-- Right panel: Draped curtains doorway -->
-            <div class="cabinet-panel-right" id="cabinetCurtainDoor" title="Step Inside">
+            <!-- Right panel: Draped curtains doorway (starts locked) -->
+            <div class="cabinet-panel-right locked" id="cabinetCurtainDoor" title="Step Inside">
               <div class="cabinet-curtain"></div>
               <div class="booth-shadow-bottom"></div>
             </div>
           </div>
 
           <!-- Uploader Button -->
-
           <button id="uploadPhotosBtn" class="btn-secondary cabinet-uploader-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload Photos Instead
@@ -64,13 +65,45 @@ export class LandingView implements AppView {
       </div>
     `;
 
-    // Hook events
-    const arcadeStartBtn = container.querySelector('#arcadeStartBtn');
-    const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor');
+    // Hook elements
+    const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
+    const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
+    const coinSlotBtn = container.querySelector('#coinSlotBtn') as HTMLElement;
+    const coinLedDisplay = container.querySelector('#coinLedDisplay') as HTMLElement;
     const uploadPhotosBtn = container.querySelector('#uploadPhotosBtn');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
 
+    // Insert Coin action
+    coinSlotBtn?.addEventListener('click', () => {
+      if (this.coinInserted) return;
+      this.coinInserted = true;
+
+      // Play arcade metallic coin drop chime
+      this.audio.playCoinDrop();
+
+      // Enable LED status and button animations
+      if (coinLedDisplay) {
+        coinLedDisplay.innerText = 'ready';
+        coinLedDisplay.classList.add('ready');
+      }
+      arcadeStartBtn?.classList.remove('locked');
+      cabinetCurtainDoor?.classList.remove('locked');
+    });
+
     const startAction = () => {
+      if (!this.coinInserted) {
+        // Warning feedback: tick sound and shake coin door wrapper
+        this.audio.playTick();
+        
+        const coinDoor = container.querySelector('.coin-door-wrapper');
+        if (coinDoor) {
+          coinDoor.classList.remove('shake-warning');
+          void (coinDoor as HTMLElement).offsetWidth; // force reflow
+          coinDoor.classList.add('shake-warning');
+          setTimeout(() => coinDoor.classList.remove('shake-warning'), 500);
+        }
+        return;
+      }
       this.audio.playTypewriter();
       this.onViewChange('camera-setup');
     };
@@ -92,7 +125,6 @@ export class LandingView implements AppView {
         return;
       }
 
-      // Limit to 3 photos (as user requested 3 shots)
       const numToLoad = Math.min(files.length, 3);
       const fileArray = Array.from(files).slice(0, numToLoad);
 

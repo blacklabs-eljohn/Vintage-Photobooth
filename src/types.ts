@@ -7,7 +7,6 @@ export interface AppState {
   capturedFrames: string[]; // array of base64 data URLs
   stripSettings: StripSettings;
   finalStripUrl: string; // output generated image url
-  gifUrl?: string; // compiled animated GIF slideshow url
 }
 
 export interface AppView {

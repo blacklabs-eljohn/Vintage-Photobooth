@@ -210,4 +210,130 @@ export class AudioManager {
       console.warn('Failed to play dispenser sound:', e);
     }
   }
+
+  // Synthesize a metallic arcade coin drop sound (clink-clonk-chime)
+  public playCoinDrop() {
+    if (this.muted) return;
+    try {
+      const ctx = this.initContext();
+      const now = ctx.currentTime;
+
+      // 1. Initial metallic clinks (metal strike)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1500, now);
+      osc1.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.06);
+
+      // Second clink (impact delay 60ms)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1200, now + 0.06);
+      osc2.frequency.exponentialRampToValueAtTime(400, now + 0.12);
+      gain2.gain.setValueAtTime(0.08, now + 0.06);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.06);
+      osc2.stop(now + 0.13);
+
+      // 2. Coin sliding drop / clunk (delay 150ms)
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = 'triangle';
+      osc3.frequency.setValueAtTime(150, now + 0.15);
+      osc3.frequency.exponentialRampToValueAtTime(80, now + 0.28);
+      gain3.gain.setValueAtTime(0.25, now + 0.15);
+      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(now + 0.15);
+      osc3.stop(now + 0.3);
+
+      // 3. Metallic ring chime (coins rattling, delay 250ms)
+      const osc4 = ctx.createOscillator();
+      const gain4 = ctx.createGain();
+      osc4.type = 'sine';
+      osc4.frequency.setValueAtTime(1800, now + 0.25);
+      osc4.frequency.exponentialRampToValueAtTime(1600, now + 0.45);
+      gain4.gain.setValueAtTime(0.05, now + 0.25);
+      gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc4.connect(gain4);
+      gain4.connect(ctx.destination);
+      osc4.start(now + 0.25);
+      osc4.stop(now + 0.5);
+    } catch (e) {
+      console.warn('Failed to play coin drop sound:', e);
+    }
+  }
+
+  // Synthesize a mechanical paper tearing/ripping sound
+  public playPaperTear() {
+    if (this.muted) return;
+    try {
+      const ctx = this.initContext();
+      const duration = 0.35;
+      const now = ctx.currentTime;
+
+      // Noise buffer for the paper fiber rip
+      const bufferSize = ctx.sampleRate * duration;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      
+      // Generate noise with low-frequency crackle elements
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        const crackle = Math.sin(i * 0.05) > 0.9 ? 1.5 : 1.0;
+        data[i] = white * 0.3 * crackle;
+      }
+
+      const noiseNode = ctx.createBufferSource();
+      noiseNode.buffer = buffer;
+
+      // Bandpass filter to isolate the paper ripping frequency band
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1100, now);
+      filter.frequency.linearRampToValueAtTime(700, now + duration);
+      filter.Q.setValueAtTime(2.5, now);
+
+      // Volume envelope with rapid gain fluctuations (ripping texture)
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05); // fast attack
+      
+      const modLFO = ctx.createOscillator();
+      const modGain = ctx.createGain();
+      modLFO.type = 'sawtooth';
+      modLFO.frequency.setValueAtTime(35, now); // 35Hz vibration
+      modGain.gain.setValueAtTime(0.12, now);
+      
+      modLFO.connect(modGain);
+      modGain.connect(gainNode.gain);
+
+      // Decay
+      gainNode.gain.setValueAtTime(0.25, now + duration - 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      // Connections
+      noiseNode.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      modLFO.start(now);
+      noiseNode.start(now);
+
+      modLFO.stop(now + duration);
+      noiseNode.stop(now + duration);
+    } catch (e) {
+      console.warn('Failed to play paper tear sound:', e);
+    }
+  }
 }
