@@ -46,6 +46,8 @@ export class CustomizeView implements AppView {
       `;
     });
 
+    const isPolaroid = this.state.boothMode === 'polaroid';
+
     container.innerHTML = `
       <div class="view-panel" id="customizeWorkspace">
         <div class="workspace-layout">
@@ -53,7 +55,7 @@ export class CustomizeView implements AppView {
           <div class="preview-container">
             <h2 class="panel-title" style="margin-bottom: 8px; font-family: var(--font-sans); font-size: 0.9rem; color: hsl(var(--text-muted)); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Live Preview</h2>
             
-            <div class="photostrip-paper strip-border-${this.state.stripSettings.borderStyle}" id="stripPreviewPaper">
+            <div class="photostrip-paper ${isPolaroid ? 'mode-polaroid' : ''} strip-border-${this.state.stripSettings.borderStyle}" id="stripPreviewPaper">
               ${framesHtml}
               
               <div class="photostrip-footer">
@@ -410,7 +412,8 @@ export class CustomizeView implements AppView {
       try {
         const finalUrl = await StripGenerator.generateStrip(
           this.state.capturedFrames,
-          this.state.stripSettings
+          this.state.stripSettings,
+          this.state.boothMode
         );
         this.state.finalStripUrl = finalUrl;
         this.onViewChange('result');

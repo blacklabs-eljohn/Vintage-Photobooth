@@ -18,6 +18,8 @@ export class LandingView implements AppView {
   }
 
   public render(container: HTMLElement) {
+    const isStrip = this.state.boothMode === 'strip';
+
     container.innerHTML = `
       <div class="view-panel">
         <div class="cabinet-wrapper">
@@ -25,7 +27,7 @@ export class LandingView implements AppView {
           <div class="neon-marquee">
             <h2 class="neon-text">Photos</h2>
           </div>
-
+ 
           <!-- The Physical Photobooth Cabinet facade -->
           <div class="booth-cabinet" id="cabinetBody">
             <!-- Left panel: Control Board (Arcade Button, Coin Slot, Dispenser) -->
@@ -37,23 +39,30 @@ export class LandingView implements AppView {
                 <div class="coin-return"></div>
               </div>
 
+              <!-- Mode Selector -->
+              <div class="cabinet-mode-selector" id="modeSelectorPanel">
+                <span class="mode-label">Booth Mode</span>
+                <button class="mode-btn ${isStrip ? 'active' : ''}" id="modeStripBtn" title="3-Shot Photostrip">🎞️ Strip</button>
+                <button class="mode-btn ${!isStrip ? 'active' : ''}" id="modePolaroidBtn" title="1-Shot Polaroid">📸 Polaroid</button>
+              </div>
+ 
               <!-- Start Button -->
               <div class="arcade-start-button-wrapper">
                 <button class="arcade-start-btn locked" id="arcadeStartBtn" title="Start Session"></button>
                 <span class="arcade-btn-label">START</span>
               </div>
-
+ 
               <!-- Photo Dispenser tray -->
               <div class="paper-dispenser" title="Photo Strip Exit"></div>
             </div>
-
+ 
             <!-- Right panel: Draped curtains doorway (starts locked) -->
             <div class="cabinet-panel-right locked" id="cabinetCurtainDoor" title="Step Inside">
               <div class="cabinet-curtain"></div>
               <div class="booth-shadow-bottom"></div>
             </div>
           </div>
-
+ 
           <!-- Uploader Button -->
           <button id="uploadPhotosBtn" class="btn-secondary cabinet-uploader-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -64,7 +73,7 @@ export class LandingView implements AppView {
         </div>
       </div>
     `;
-
+ 
     // Hook elements
     const arcadeStartBtn = container.querySelector('#arcadeStartBtn') as HTMLButtonElement;
     const cabinetCurtainDoor = container.querySelector('#cabinetCurtainDoor') as HTMLElement;
@@ -73,14 +82,17 @@ export class LandingView implements AppView {
     const uploadPhotosBtn = container.querySelector('#uploadPhotosBtn');
     const hiddenFileInput = container.querySelector('#hiddenFileInput') as HTMLInputElement;
 
+    const modeStripBtn = container.querySelector('#modeStripBtn') as HTMLButtonElement;
+    const modePolaroidBtn = container.querySelector('#modePolaroidBtn') as HTMLButtonElement;
+ 
     // Insert Coin action
     coinSlotBtn?.addEventListener('click', () => {
       if (this.coinInserted) return;
       this.coinInserted = true;
-
+ 
       // Play arcade metallic coin drop chime
       this.audio.playCoinDrop();
-
+ 
       // Enable LED status and button animations
       if (coinLedDisplay) {
         coinLedDisplay.innerText = 'ready';
@@ -90,6 +102,23 @@ export class LandingView implements AppView {
       cabinetCurtainDoor?.classList.remove('locked');
     });
 
+    // Mode Selector actions
+    modeStripBtn?.addEventListener('click', () => {
+      if (this.state.boothMode === 'strip') return;
+      this.audio.playTypewriter();
+      this.state.boothMode = 'strip';
+      modeStripBtn.classList.add('active');
+      modePolaroidBtn.classList.remove('active');
+    });
+
+    modePolaroidBtn?.addEventListener('click', () => {
+      if (this.state.boothMode === 'polaroid') return;
+      this.audio.playTypewriter();
+      this.state.boothMode = 'polaroid';
+      modePolaroidBtn.classList.add('active');
+      modeStripBtn.classList.remove('active');
+    });
+ 
     const startAction = () => {
       if (!this.coinInserted) {
         // Warning feedback: tick sound and shake coin door wrapper
@@ -107,27 +136,32 @@ export class LandingView implements AppView {
       this.audio.playTypewriter();
       this.onViewChange('camera-setup');
     };
-
+ 
     arcadeStartBtn?.addEventListener('click', startAction);
     cabinetCurtainDoor?.addEventListener('click', startAction);
-
+ 
     uploadPhotosBtn?.addEventListener('click', () => {
       this.audio.playTypewriter();
       hiddenFileInput?.click();
     });
-
+ 
     hiddenFileInput?.addEventListener('change', async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
+ 
+      const isPolaroid = this.state.boothMode === 'polaroid';
+      const minRequired = isPolaroid ? 1 : 3;
 
-      if (files.length < 3) {
-        alert('Please select at least 3 photos to generate a vintage photostrip.');
+      if (files.length < minRequired) {
+        alert(isPolaroid
+          ? 'Please select at least 1 photo to generate a Polaroid.'
+          : 'Please select at least 3 photos to generate a vintage photostrip.'
+        );
         return;
       }
-
-      const numToLoad = Math.min(files.length, 3);
-      const fileArray = Array.from(files).slice(0, numToLoad);
-
+ 
+      const fileArray = Array.from(files).slice(0, minRequired);
+ 
       try {
         const loadedUrls = await Promise.all(
           fileArray.map(file => this.readFileAsDataUrl(file))

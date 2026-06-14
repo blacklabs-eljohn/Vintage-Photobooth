@@ -49,6 +49,7 @@ class AppController {
         signatureDataUrl: '',
       },
       finalStripUrl: '',
+      boothMode: 'strip',
     };
 
     this.audio = new AudioManager();
@@ -197,7 +198,7 @@ class AppController {
   // Footer template
   private renderFooter() {
     this.footerContainer.innerHTML = `
-      <p style="margin: 0;">Made with ❤️ by Ethan • Client-Side Processing • Privacy First</p>
+      <p style="margin: 0;">Made with ❤️ by Ethan</p>
     `;
   }
 
@@ -216,6 +217,7 @@ class AppController {
       dustAndScratches: false,
       signatureDataUrl: '',
     };
+    this.state.boothMode = 'strip';
   }
 }
 

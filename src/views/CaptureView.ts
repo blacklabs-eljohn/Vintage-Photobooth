@@ -30,6 +30,15 @@ export class CaptureView implements AppView {
     // Clean old captures
     this.state.capturedFrames = [];
 
+    const isPolaroid = this.state.boothMode === 'polaroid';
+    const bulbsHtml = isPolaroid
+      ? `<div class="indicator-bulb" id="bulb-0" title="Photo 1" style="width: 14px; height: 14px; border-radius: 50%;"></div>`
+      : `
+        <div class="indicator-bulb" id="bulb-0" title="Photo 1"></div>
+        <div class="indicator-bulb" id="bulb-1" title="Photo 2"></div>
+        <div class="indicator-bulb" id="bulb-2" title="Photo 3"></div>
+      `;
+
     container.innerHTML = `
       <div class="view-panel">
         <div class="booth-layout">
@@ -42,7 +51,7 @@ export class CaptureView implements AppView {
             
             <!-- Grid Lines overlay -->
             <div class="overlay-grid"></div>
-
+ 
             <!-- Header UI over camera -->
             <div class="viewfinder-overlay">
               <div class="overlay-top">
@@ -62,31 +71,29 @@ export class CaptureView implements AppView {
                 <div id="camTimecode">TC 0:00:00:00</div>
               </div>
             </div>
-
+ 
             <!-- Countdown Overlay -->
             <div class="countdown-overlay" id="countdownOverlay">
               <div class="countdown-number" id="countdownNumber">3</div>
             </div>
           </div>
-
+ 
           <!-- Mechanical Control Board -->
           <div class="booth-controls">
-            <!-- Left: 3 Bulb indicators for 3 shots -->
+            <!-- Left: Bulb indicators -->
             <div class="booth-indicators">
-              <div class="indicator-bulb" id="bulb-0" title="Photo 1"></div>
-              <div class="indicator-bulb" id="bulb-1" title="Photo 2"></div>
-              <div class="indicator-bulb" id="bulb-2" title="Photo 3"></div>
+              ${bulbsHtml}
             </div>
-
+ 
             <!-- Center: Retro Instructions -->
             <div class="booth-instructions" id="boothInstructions">
               Ready to shoot
             </div>
-
+ 
             <!-- Right: Big red shutter trigger -->
             <button class="booth-shutter-trigger" id="shutterTriggerBtn" title="Start Capture"></button>
           </div>
-
+ 
           <!-- Bottom Actions -->
           <div style="margin-top: 24px; display: flex; gap: 12px; width: 100%; max-width: 320px;">
             <button id="cancelCaptureBtn" class="btn-secondary" style="flex: 1;">Cancel</button>
@@ -95,7 +102,7 @@ export class CaptureView implements AppView {
         </div>
       </div>
     `;
-
+ 
     this.videoEl = container.querySelector('#boothVideo') as HTMLVideoElement;
     const shutterTriggerBtn = container.querySelector('#shutterTriggerBtn') as HTMLButtonElement;
     const cancelCaptureBtn = container.querySelector('#cancelCaptureBtn') as HTMLButtonElement;
@@ -185,8 +192,8 @@ export class CaptureView implements AppView {
     };
     this.timecodeInterval = setInterval(updateTimecode, 41.67);
 
-    // 3 shots instead of 4
-    const numPhotos = 3;
+    const isPolaroid = this.state.boothMode === 'polaroid';
+    const numPhotos = isPolaroid ? 1 : 3;
 
     for (let frame = 0; frame < numPhotos; frame++) {
       if (!this.captureActive) break;
@@ -197,7 +204,7 @@ export class CaptureView implements AppView {
         currentBulb.className = 'indicator-bulb capturing';
       }
 
-      boothInstructions.innerText = `Strike Pose ${frame + 1}!`;
+      boothInstructions.innerText = isPolaroid ? 'Strike Pose!' : `Strike Pose ${frame + 1}!`;
 
       // 3-second countdown per frame
       const viewfinderLightLeak = container.querySelector('#viewfinderLightLeak') as HTMLElement;
@@ -249,7 +256,7 @@ export class CaptureView implements AppView {
       await this.wait(150);
       flashOverlay.classList.remove('active');
 
-      boothInstructions.innerText = `Pose ${frame + 1} Captured`;
+      boothInstructions.innerText = isPolaroid ? 'Pose Captured' : `Pose ${frame + 1} Captured`;
 
       // Pose transition delay (1.5 seconds)
       if (frame < numPhotos - 1) {

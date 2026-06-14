@@ -7,6 +7,7 @@ export interface AppState {
   capturedFrames: string[]; // array of base64 data URLs
   stripSettings: StripSettings;
   finalStripUrl: string; // output generated image url
+  boothMode: 'strip' | 'polaroid';
 }
 
 export interface AppView {

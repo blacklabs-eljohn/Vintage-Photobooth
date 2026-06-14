@@ -13,28 +13,28 @@ export interface StripSettings {
 }
 
 export class StripGenerator {
-  // Renders the high-quality vertical photo strip to a Canvas and returns a Data URL
+  // Renders the high-quality vertical photo strip or polaroid to a Canvas and returns a Data URL
   public static async generateStrip(
     imageUrls: string[],
-    settings: StripSettings
+    settings: StripSettings,
+    boothMode: 'strip' | 'polaroid' = 'strip'
   ): Promise<string> {
     const theme = ThemeManager.getTheme(settings.themeId);
     const numPhotos = imageUrls.length;
+    const isPolaroid = boothMode === 'polaroid';
 
     // Dimensions for high-res output
-    const canvasWidth = 800;
-    const margin = 50;
+    const canvasWidth = isPolaroid ? 700 : 800;
+    const margin = isPolaroid ? 45 : 50;
     const photoWidth = canvasWidth - margin * 2;
-    const photoHeight = Math.round(photoWidth * (3 / 4)); // 4:3 aspect ratio (525px)
-    const gap = 40;
-    const footerHeight = 220; // Extra room at the bottom for typography
+    const photoHeight = isPolaroid ? photoWidth : Math.round(photoWidth * (3 / 4)); // Square 1:1 vs 4:3 aspect ratio
+    const gap = isPolaroid ? 0 : 40;
+    const footerHeight = isPolaroid ? 170 : 220; // Extra room at the bottom for typography/signatures
 
     // Calculate total canvas height
-    const canvasHeight =
-      margin + // Top margin
-      numPhotos * photoHeight + // Sum of image heights
-      (numPhotos - 1) * gap + // Sum of gaps
-      footerHeight; // Bottom padding
+    const canvasHeight = isPolaroid
+      ? margin + photoHeight + footerHeight // e.g., 45 + 610 + 170 = 825px
+      : margin + numPhotos * photoHeight + (numPhotos - 1) * gap + footerHeight;
 
     const canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
@@ -214,14 +214,14 @@ export class StripGenerator {
     // Draw Location (left bottom)
     if (settings.location) {
       ctx.fillStyle = settings.borderStyle === 'charcoal' ? '#a5afbe' : '#7d7570';
-      ctx.font = '24px "Special Elite", Courier, monospace';
+      ctx.font = isPolaroid ? '22px "Special Elite", Courier, monospace' : '24px "Special Elite", Courier, monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`📍 ${settings.location}`, margin + 15, canvasHeight - 75);
+      ctx.fillText(`📍 ${settings.location}`, margin + 15, isPolaroid ? canvasHeight - 65 : canvasHeight - 75);
     }
 
     // Draw Date Stamp (right bottom)
     if (settings.showDate && settings.dateStr) {
-      ctx.font = '28px "Share Tech Mono", monospace';
+      ctx.font = isPolaroid ? '24px "Share Tech Mono", monospace' : '28px "Share Tech Mono", monospace';
       // Classic orange camera LED stamp
       ctx.fillStyle = '#ff6b00';
       
@@ -230,7 +230,7 @@ export class StripGenerator {
       ctx.shadowBlur = 4;
       
       ctx.textAlign = 'right';
-      ctx.fillText(settings.dateStr, canvasWidth - margin - 15, canvasHeight - 75);
+      ctx.fillText(settings.dateStr, canvasWidth - margin - 15, isPolaroid ? canvasHeight - 65 : canvasHeight - 75);
       
       // Reset shadows
       ctx.shadowBlur = 0;
@@ -239,7 +239,7 @@ export class StripGenerator {
     // Draw retro stripes at the bottom if disco style selected
     if (settings.borderStyle === 'disco') {
       const stripeColors = ['#7b5a42', '#d2b48c', '#e65c00', '#b22222'];
-      const stripeHeight = 16;
+      const stripeHeight = isPolaroid ? 12 : 16;
       const yStripe = canvasHeight - stripeHeight - 15;
       const sliceWidth = canvasWidth / stripeColors.length;
       stripeColors.forEach((color, idx) => {
@@ -253,10 +253,10 @@ export class StripGenerator {
       try {
         const sigImg = await this.loadImage(settings.signatureDataUrl);
         ctx.save();
-        const sigWidth = 200;
-        const sigHeight = 70;
+        const sigWidth = isPolaroid ? 180 : 200;
+        const sigHeight = isPolaroid ? 60 : 70;
         const sigX = (canvasWidth - sigWidth) / 2;
-        const sigY = canvasHeight - 115;
+        const sigY = isPolaroid ? canvasHeight - 100 : canvasHeight - 115;
         
         // Use multiply blend mode to overlay the black lines onto paper textures
         ctx.globalCompositeOperation = 'multiply';
@@ -269,10 +269,10 @@ export class StripGenerator {
 
     // Draw vintage logo stamp at the center bottom
     ctx.fillStyle = settings.borderStyle === 'charcoal' ? '#4f5564' : (settings.borderStyle === 'cardboard' ? '#5a4635' : '#cdc0b4');
-    ctx.font = 'normal 400 16px "Outfit", sans-serif';
+    ctx.font = isPolaroid ? 'normal 400 14px "Outfit", sans-serif' : 'normal 400 16px "Outfit", sans-serif';
     ctx.textAlign = 'center';
-    ctx.letterSpacing = '6px';
-    ctx.fillText('R E T R O L E N S', canvasWidth / 2, canvasHeight - 35);
+    ctx.letterSpacing = isPolaroid ? '4px' : '6px';
+    ctx.fillText('R E T R O L E N S', canvasWidth / 2, isPolaroid ? canvasHeight - 25 : canvasHeight - 35);
     ctx.letterSpacing = '0px'; // Reset letterSpacing
 
     return canvas.toDataURL('image/png');
