@@ -197,7 +197,7 @@ class AppController {
   // Footer template
   private renderFooter() {
     this.footerContainer.innerHTML = `
-      <p style="margin: 0;">Designed by Ethan • Client-Side Processing • Privacy First</p>
+      <p style="margin: 0;">Made with ❤️ by Ethan • Client-Side Processing • Privacy First</p>
     `;
   }
 
