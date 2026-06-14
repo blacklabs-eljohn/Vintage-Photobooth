@@ -18,8 +18,8 @@ export class LandingView implements AppView {
   }
 
   public render(container: HTMLElement) {
-    if (!this.state.boothFormat) this.state.boothFormat = 'strip';
-    if (!this.state.connectionMode) this.state.connectionMode = 'solo';
+    this.state.boothFormat = undefined;
+    this.state.connectionMode = undefined;
 
     // Reset step state back to format selection on initial render
     this.activeStep = 'format';
@@ -113,8 +113,8 @@ export class LandingView implements AppView {
     const updateConsole = () => {
       if (!consoleLcd || !consoleKeypad) return;
 
-      const fmt = this.state.boothFormat || 'strip';
-      const md = this.state.connectionMode || 'solo';
+      const fmt = this.state.boothFormat;
+      const md = this.state.connectionMode;
 
       // 1. Render LCD Screen contents
       if (this.activeStep === 'format') {
@@ -131,7 +131,7 @@ export class LandingView implements AppView {
         consoleLcd.innerHTML = `
           <div class="lcd-line lcd-status flash-warn">CREDIT REQUIRED</div>
           <div class="lcd-line lcd-main">INSERT 1 ₱ COIN</div>
-          <div class="lcd-line lcd-sub">> FMT: ${fmt.toUpperCase()}</div>
+          <div class="lcd-line lcd-sub">> FMT: ${fmt ? fmt.toUpperCase() : ''}</div>
         `;
         if (coinRowContainer) {
           coinRowContainer.classList.remove('locked');
@@ -141,7 +141,7 @@ export class LandingView implements AppView {
         consoleLcd.innerHTML = `
           <div class="lcd-line lcd-status">CREDIT: 1 ₱ OK</div>
           <div class="lcd-line lcd-main">SELECT MODE</div>
-          <div class="lcd-line lcd-sub">> FMT: ${fmt.toUpperCase()}</div>
+          <div class="lcd-line lcd-sub">> FMT: ${fmt ? fmt.toUpperCase() : ''}</div>
         `;
         if (coinRowContainer) {
           coinRowContainer.classList.add('locked');
