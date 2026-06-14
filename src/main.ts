@@ -8,6 +8,7 @@ import { CameraSetupView } from './views/CameraSetupView';
 import { CaptureView } from './views/CaptureView';
 import { CustomizeView } from './views/CustomizeView';
 import { ResultView } from './views/ResultView';
+import { fetchMomentsCount, subscribeToMomentsChanges } from './components/SupabaseClient';
 
 // Initialize Vercel Analytics
 inject();
@@ -23,6 +24,7 @@ class AppController {
   private audio: AudioManager;
   private camera: CameraManager;
   private currentViewInstance: AppView | null = null;
+  private unsubscribeRealtime: (() => void) | null = null;
 
   constructor() {
     this.container = document.querySelector<HTMLDivElement>('#app')!;
@@ -162,42 +164,47 @@ class AppController {
     });
   }
 
-  // Header render containing the mute switch
+  // Header render containing the moments counter
   private renderHeader() {
     this.headerContainer.innerHTML = `
-      <div class="logo-container">
-        <h1 class="logo-title">RetroLens</h1>
-        <p class="logo-sub">vintage photobooth</p>
+      <div class="header-counter">
+        <span class="counter-label">RETROLENS MOMENTS</span>
+        <div class="counter-display" id="momentsCounterDisplay">
+          <span class="counter-digits" id="momentsCounterDigits">------</span>
+        </div>
       </div>
-      <button class="control-btn" id="muteToggleBtn">
-        <svg id="muteIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        <span id="muteLabel">Sound On</span>
-      </button>
     `;
 
-    const muteBtn = this.headerContainer.querySelector('#muteToggleBtn');
-    const muteIcon = this.headerContainer.querySelector('#muteIcon');
-    const muteLabel = this.headerContainer.querySelector('#muteLabel') as HTMLElement;
-
-    muteBtn?.addEventListener('click', () => {
-      const isMuted = this.audio.toggleMute();
-      this.audio.playTypewriter(); // Will click if just unmuted
-
-      if (isMuted) {
-        muteLabel.innerText = 'Sound Muted';
-        muteIcon!.innerHTML = `
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-          <line x1="23" y1="9" x2="17" y2="15"/>
-          <line x1="17" y1="9" x2="23" y2="15"/>
-        `;
-      } else {
-        muteLabel.innerText = 'Sound On';
-        muteIcon!.innerHTML = `
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-        `;
-      }
+    // Fetch initial count
+    fetchMomentsCount().then(count => {
+      this.updateCounterUI(count);
     });
+
+    // Subscribe to realtime updates
+    if (this.unsubscribeRealtime) {
+      this.unsubscribeRealtime();
+    }
+    this.unsubscribeRealtime = subscribeToMomentsChanges((newCount) => {
+      this.updateCounterUI(newCount, true);
+    });
+  }
+
+  private updateCounterUI(count: number, triggerFlash = false) {
+    const digitsEl = this.headerContainer.querySelector('#momentsCounterDigits');
+    const displayEl = this.headerContainer.querySelector('#momentsCounterDisplay') as HTMLElement | null;
+    if (digitsEl) {
+      digitsEl.textContent = count.toLocaleString();
+    }
+    if (triggerFlash && displayEl) {
+      displayEl.classList.remove('flash-update');
+      // trigger reflow
+      void displayEl.offsetWidth;
+      displayEl.classList.add('flash-update');
+
+      if (!this.audio.isMuted()) {
+        this.audio.playBeep();
+      }
+    }
   }
 
   // Footer template

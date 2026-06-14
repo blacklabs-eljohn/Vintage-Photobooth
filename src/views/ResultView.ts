@@ -1,5 +1,6 @@
 import type { AppView, AppState } from '../types';
 import { AudioManager } from '../components/AudioManager';
+import { incrementMomentsCount } from '../components/SupabaseClient';
 
 export class ResultView implements AppView {
   private state: AppState;
@@ -67,6 +68,9 @@ export class ResultView implements AppView {
       printerDelivery?.classList.add('show');
       this.audio.playDispenser();
     });
+
+    // Increment moments counter in Supabase database
+    incrementMomentsCount();
 
     // 1. Download Photostrip
     downloadBtn?.addEventListener('click', () => {

@@ -224,7 +224,7 @@ body::after {
 /* Header & Mute Controls */
 .app-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 8px;
@@ -276,6 +276,95 @@ body::after {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   border-color: hsl(var(--accent-brown));
 }
+
+/* Vintage LED Counter */
+.header-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 8px;
+}
+
+.counter-label {
+  font-family: var(--font-typewriter);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: hsl(var(--accent-brown));
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  user-select: none;
+}
+
+.counter-display {
+  background: #110f0e;
+  border: 2px solid #5c3d2e; /* Brass/warm brown border */
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.9),
+    0 1px 2px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+/* CRT scanlines overlay on the counter display */
+.counter-display::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1.5px,
+    rgba(0, 0, 0, 0.25) 1.5px,
+    rgba(0, 0, 0, 0.25) 3px
+  );
+  z-index: 2;
+}
+
+.counter-digits {
+  font-family: var(--font-led);
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #ff8400; /* Rich orange/amber nixie glow */
+  text-shadow: 
+    0 0 3px rgba(255, 132, 0, 0.5),
+    0 0 8px rgba(255, 132, 0, 0.7);
+  letter-spacing: 1.5px;
+  line-height: 1;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+/* Increment flash effect */
+.counter-display.flash-update {
+  animation: counter-flash-pulse 0.4s ease-out;
+}
+
+@keyframes counter-flash-pulse {
+  0% {
+    border-color: #ffaa44;
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.9),
+      0 0 10px rgba(255, 132, 0, 0.8);
+  }
+  50% {
+    background-color: #2b170c;
+  }
+  100% {
+    border-color: #5c3d2e;
+    box-shadow: 
+      inset 0 3px 6px rgba(0, 0, 0, 0.9),
+      0 1px 2px rgba(255, 255, 255, 0.1);
+  }
+}
+
 
 /* View panels scale and translate cleanly */
 .view-panel {
