@@ -21,7 +21,7 @@ class AppController {
 
   constructor() {
     this.container = document.querySelector<HTMLDivElement>('#app')!;
-    
+
     // Set up sub-layout areas
     this.container.innerHTML = `
       <header class="app-header" id="appHeader"></header>
@@ -197,7 +197,7 @@ class AppController {
   // Footer template
   private renderFooter() {
     this.footerContainer.innerHTML = `
-      <p style="margin: 0;">Designed with Nostalgia • Client-Side Processing • Privacy First</p>
+      <p style="margin: 0;">Designed by Ethan • Client-Side Processing • Privacy First</p>
     `;
   }
 
