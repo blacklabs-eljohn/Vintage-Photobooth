@@ -74,10 +74,16 @@ class AppController {
     this.renderHeader();
     this.renderFooter();
 
+    // Add a global error listener to display runtime crashes on mobile devices
+    window.addEventListener('error', (event) => {
+      alert(`Uncaught JS Error: ${event.message} at ${event.filename}:${event.lineno}`);
+    });
+
     // Check for Duet Room query parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
-    const roomParam = urlParams.get('room');
+    let roomParam = urlParams.get('room');
     if (roomParam) {
+      roomParam = roomParam.trim().replace(/\/+$/, ''); // Strip trailing slashes appended by social platforms
       this.state.duetRoomId = roomParam;
       this.state.duetRole = 'partner';
       this.state.connectionMode = 'duet';
