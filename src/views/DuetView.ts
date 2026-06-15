@@ -101,8 +101,17 @@ export class DuetView implements AppView {
         webrtc_ready: (payload: any) => {
           if (payload.payload && payload.payload.role !== this.role) {
             this.partnerWebRTCReady = true;
-            if (this.role === 'host' && this.localWebRTCReady) {
-              this.initWebRTC();
+            console.log(`WebRTC: Partner (${payload.payload.role}) camera is ready.`);
+            if (this.role === 'host') {
+              if (this.localWebRTCReady) {
+                this.initWebRTC();
+              }
+            } else {
+              // We are partner. If our camera is already ready, resend ready notification in case host missed it
+              if (this.localWebRTCReady) {
+                console.log('WebRTC: We are partner, already ready. Resending ready signal to host.');
+                this.broadcast('webrtc_ready', { role: this.role });
+              }
             }
           }
         },
@@ -678,6 +687,7 @@ export class DuetView implements AppView {
           const remoteImg = this.container?.querySelector('#remoteSnapshotImg') as HTMLImageElement;
           if (remoteVideo && remoteVideo.srcObject) {
             remoteVideo.style.display = 'block';
+            remoteVideo.play().catch((err) => console.warn('WebRTC: Remote video play failed after snap:', err));
             if (remoteImg) remoteImg.style.display = 'none';
             const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
             if (placeholder) placeholder.style.display = 'none';
@@ -912,8 +922,8 @@ export class DuetView implements AppView {
     }, 2000);
   }
 
-  private createPeerConnection() {
-    if (this.peerConnection) return;
+  private createPeerConnection(): RTCPeerConnection {
+    if (this.peerConnection) return this.peerConnection;
 
     const configuration = {
       iceServers: [
@@ -959,16 +969,18 @@ export class DuetView implements AppView {
       if (remoteVideo && event.streams && event.streams[0]) {
         remoteVideo.srcObject = event.streams[0];
         remoteVideo.muted = true; // Ensure browser autoplay policies don't block
-        remoteVideo.play()
-          .then(() => console.log('WebRTC: Remote video playback started successfully'))
-          .catch((err) => console.warn('WebRTC: Remote video play failed', err));
         
-        // Hide placeholder and show video
+        // Hide placeholder and show video FIRST (critical for mobile browsers)
         const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
         if (placeholder) {
           placeholder.style.display = 'none';
         }
         remoteVideo.style.display = 'block';
+
+        // Play AFTER showing the element to bypass browser pause-on-hidden security
+        remoteVideo.play()
+          .then(() => console.log('WebRTC: Remote video playback started successfully'))
+          .catch((err) => console.warn('WebRTC: Remote video play failed', err));
       }
     };
 
@@ -979,15 +991,22 @@ export class DuetView implements AppView {
         this.broadcast('webrtc_candidate', { candidate: event.candidate });
       }
     };
+
+    return this.peerConnection;
   }
 
   private async initWebRTC() {
+    if (this.peerConnection) {
+      console.log('WebRTC: Peer connection already exists, skipping initialization.');
+      return;
+    }
     console.log('WebRTC: Initializing WebRTC session (role is host)...');
-    this.createPeerConnection();
-    if (this.peerConnection && this.role === 'host') {
+    const pc = this.createPeerConnection();
+    
+    if (this.role === 'host') {
       try {
-        const offer = await this.peerConnection.createOffer();
-        await this.peerConnection.setLocalDescription(offer);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
         console.log('WebRTC: Creating and broadcasting offer...');
         this.broadcast('webrtc_offer', { offer });
       } catch (err) {
