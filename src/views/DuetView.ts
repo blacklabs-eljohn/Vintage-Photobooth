@@ -425,6 +425,7 @@ export class DuetView implements AppView {
   }
 
   private async renderCapturing() {
+    this.closeWebRTC();
     this.container!.innerHTML = `
       <div class="view-panel">
         <div class="reaction-overlay-container" id="reactionOverlayContainer"></div>
@@ -999,7 +1000,14 @@ export class DuetView implements AppView {
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.peerConnection) {
         console.log('WebRTC: Sending ICE candidate...');
-        this.broadcast('webrtc_candidate', { candidate: event.candidate });
+        this.broadcast('webrtc_candidate', {
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+            usernameFragment: event.candidate.usernameFragment
+          }
+        });
       }
     };
 
@@ -1019,7 +1027,12 @@ export class DuetView implements AppView {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         console.log('WebRTC: Creating and broadcasting offer...');
-        this.broadcast('webrtc_offer', { offer });
+        this.broadcast('webrtc_offer', {
+          offer: {
+            type: offer.type,
+            sdp: offer.sdp
+          }
+        });
       } catch (err) {
         console.error('WebRTC: Failed to create offer', err);
       }
@@ -1036,7 +1049,12 @@ export class DuetView implements AppView {
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
         console.log('WebRTC: Broadcasting answer...');
-        this.broadcast('webrtc_answer', { answer });
+        this.broadcast('webrtc_answer', {
+          answer: {
+            type: answer.type,
+            sdp: answer.sdp
+          }
+        });
       } catch (err) {
         console.error('WebRTC: Failed to handle offer and create answer', err);
       }
@@ -1055,7 +1073,11 @@ export class DuetView implements AppView {
     }
   }
 
-  private async handleWebRTCCandidate(candidate: RTCIceCandidateInit) {
+  private async handleWebRTCCandidate(candidate: any) {
+    if (!candidate || !candidate.candidate) {
+      console.log('WebRTC: Ignoring empty or invalid candidate');
+      return;
+    }
     if (this.peerConnection && this.peerConnection.remoteDescription) {
       try {
         await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
