@@ -44,6 +44,7 @@ export class DuetView implements AppView {
   private peerConnection: RTCPeerConnection | null = null;
   private localWebRTCReady: boolean = false;
   private partnerWebRTCReady: boolean = false;
+  private pendingCandidates: RTCIceCandidateInit[] = [];
 
   constructor(
     state: AppState,
@@ -414,7 +415,7 @@ export class DuetView implements AppView {
             <div class="duet-viewfinder-box">
               <div class="viewfinder-label">YOUR LENS</div>
               <div class="duet-video-container">
-                <video id="boothVideo" class="camera-video" autoplay playsinline></video>
+                <video id="boothVideo" class="camera-video" autoplay playsinline muted></video>
                 <div class="lens-scanlines"></div>
               </div>
             </div>
@@ -427,7 +428,7 @@ export class DuetView implements AppView {
                   <svg class="placeholder-icon animate-pulse" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                   <span class="placeholder-text" id="remotePlaceholderText">Waiting for feed...</span>
                 </div>
-                <video id="remoteVideo" class="camera-video" autoplay playsinline style="display: none;"></video>
+                <video id="remoteVideo" class="camera-video" autoplay playsinline muted style="display: none;"></video>
                 <img id="remoteSnapshotImg" class="remote-snapshot" style="display: none;" />
                 <div class="lens-scanlines"></div>
               </div>
@@ -941,6 +942,10 @@ export class DuetView implements AppView {
       const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
       if (remoteVideo && event.streams && event.streams[0]) {
         remoteVideo.srcObject = event.streams[0];
+        remoteVideo.muted = true; // Ensure browser autoplay policies don't block
+        remoteVideo.play()
+          .then(() => console.log('WebRTC: Remote video playback started successfully'))
+          .catch((err) => console.warn('WebRTC: Remote video play failed', err));
         
         // Hide placeholder and show video
         const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
@@ -981,6 +986,7 @@ export class DuetView implements AppView {
     if (this.peerConnection) {
       try {
         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        await this.processPendingCandidates();
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
         console.log('WebRTC: Broadcasting answer...');
@@ -996,6 +1002,7 @@ export class DuetView implements AppView {
     if (this.peerConnection) {
       try {
         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        await this.processPendingCandidates();
       } catch (err) {
         console.error('WebRTC: Failed to set remote description from answer', err);
       }
@@ -1003,13 +1010,29 @@ export class DuetView implements AppView {
   }
 
   private async handleWebRTCCandidate(candidate: RTCIceCandidateInit) {
-    if (this.peerConnection) {
+    if (this.peerConnection && this.peerConnection.remoteDescription) {
       try {
         await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
         console.warn('WebRTC: Failed to add ICE candidate', err);
       }
+    } else {
+      console.log('WebRTC: Remote description not set yet. Queueing candidate.');
+      this.pendingCandidates.push(candidate);
     }
+  }
+
+  private async processPendingCandidates() {
+    if (!this.peerConnection) return;
+    console.log(`WebRTC: Processing ${this.pendingCandidates.length} queued ICE candidates`);
+    for (const candidate of this.pendingCandidates) {
+      try {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.warn('WebRTC: Failed to add queued ICE candidate', err);
+      }
+    }
+    this.pendingCandidates = [];
   }
 
   private closeWebRTC() {
@@ -1020,6 +1043,7 @@ export class DuetView implements AppView {
     }
     this.localWebRTCReady = false;
     this.partnerWebRTCReady = false;
+    this.pendingCandidates = [];
   }
 
   public destroy() {
