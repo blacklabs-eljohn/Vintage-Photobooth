@@ -418,6 +418,7 @@ export class DuetView implements AppView {
     // Run camera access
     setStatus('loading');
     if (this.localCameraReady) {
+      setStatus('online');
       startLocalCamera();
     } else {
       if (tickerText) tickerText.textContent = 'AWAITING LENS ACTIVATION...';
@@ -954,6 +955,16 @@ export class DuetView implements AppView {
         },
         {
           urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turns:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turns:openrelay.metered.ca:443?transport=tcp',
           username: 'openrelayproject',
           credential: 'openrelayproject'
         }
