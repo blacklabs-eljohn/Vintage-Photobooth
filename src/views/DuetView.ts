@@ -39,6 +39,11 @@ export class DuetView implements AppView {
   private hasSnappedLocal: boolean[] = [false, false, false];
   private remoteFrames: { [index: number]: string } = {};
   private localFrames: { [index: number]: string } = {};
+  
+  // WebRTC Live stream properties
+  private peerConnection: RTCPeerConnection | null = null;
+  private localWebRTCReady: boolean = false;
+  private partnerWebRTCReady: boolean = false;
 
   constructor(
     state: AppState,
@@ -91,6 +96,29 @@ export class DuetView implements AppView {
           if (payload.payload && payload.payload.type) {
             this.triggerReaction(payload.payload.type);
           }
+        },
+        webrtc_ready: (payload: any) => {
+          if (payload.payload && payload.payload.role !== this.role) {
+            this.partnerWebRTCReady = true;
+            if (this.role === 'host' && this.localWebRTCReady) {
+              this.initWebRTC();
+            }
+          }
+        },
+        webrtc_offer: (payload: any) => {
+          if (payload.payload && this.role === 'partner') {
+            this.handleWebRTCOffer(payload.payload.offer);
+          }
+        },
+        webrtc_answer: (payload: any) => {
+          if (payload.payload && this.role === 'host') {
+            this.handleWebRTCAnswer(payload.payload.answer);
+          }
+        },
+        webrtc_candidate: (payload: any) => {
+          if (payload.payload) {
+            this.handleWebRTCCandidate(payload.payload.candidate);
+          }
         }
       }
     );
@@ -129,9 +157,15 @@ export class DuetView implements AppView {
       if (this.viewState === 'capturing') {
         const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
         const remoteImg = this.container?.querySelector('#remoteSnapshotImg') as HTMLImageElement;
+        const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
         
-        if (placeholder && remoteImg) {
+        if (remoteVideo) {
+          remoteVideo.style.display = 'none';
+        }
+        if (placeholder) {
           placeholder.style.display = 'none';
+        }
+        if (remoteImg) {
           remoteImg.src = newFrame.image_data;
           remoteImg.style.display = 'block';
         }
@@ -142,6 +176,9 @@ export class DuetView implements AppView {
   }
 
   private transitionToState(nextState: DuetState) {
+    if (this.viewState === 'capturing' && nextState !== 'capturing') {
+      this.closeWebRTC();
+    }
     this.viewState = nextState;
     this.renderState();
   }
@@ -388,8 +425,9 @@ export class DuetView implements AppView {
               <div class="duet-video-container" id="remoteViewfinder">
                 <div class="remote-placeholder" id="remotePlaceholder">
                   <svg class="placeholder-icon animate-pulse" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                  <span class="placeholder-text" id="remotePlaceholderText">Waiting for photo...</span>
+                  <span class="placeholder-text" id="remotePlaceholderText">Waiting for feed...</span>
                 </div>
+                <video id="remoteVideo" class="camera-video" autoplay playsinline style="display: none;"></video>
                 <img id="remoteSnapshotImg" class="remote-snapshot" style="display: none;" />
                 <div class="lens-scanlines"></div>
               </div>
@@ -454,6 +492,12 @@ export class DuetView implements AppView {
     try {
       if (this.videoEl) {
         await this.camera.startCamera(this.videoEl);
+        this.localWebRTCReady = true;
+        console.log('WebRTC: Local camera ready, broadcasting webrtc_ready...');
+        this.broadcast('webrtc_ready', { role: this.role });
+        if (this.partnerWebRTCReady && this.role === 'host') {
+          this.initWebRTC();
+        }
       }
     } catch (err) {
       console.error('Failed to bind video stream in duet capturing:', err);
@@ -537,11 +581,21 @@ export class DuetView implements AppView {
     const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
     const remoteImg = this.container?.querySelector('#remoteSnapshotImg') as HTMLImageElement;
     const placeholderText = this.container?.querySelector('#remotePlaceholderText') as HTMLElement;
-    if (placeholder && remoteImg && placeholderText) {
-      placeholder.style.display = 'flex';
-      placeholderText.textContent = `Capturing Shot ${frameIndex + 1}...`;
+    const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
+
+    if (remoteImg) {
       remoteImg.style.display = 'none';
       remoteImg.src = '';
+    }
+
+    if (remoteVideo && remoteVideo.srcObject) {
+      remoteVideo.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+    } else {
+      if (placeholder) placeholder.style.display = 'flex';
+      if (placeholderText) {
+        placeholderText.textContent = `Capturing Shot ${frameIndex + 1}...`;
+      }
     }
 
     for (let sec = 3; sec >= 1; sec--) {
@@ -594,6 +648,12 @@ export class DuetView implements AppView {
       
       // Update UI preview for both local/remote snaps on this screen
       const remoteImg = this.container?.querySelector('#remoteSnapshotImg') as HTMLImageElement;
+      const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
+
+      if (remoteVideo) {
+        remoteVideo.style.display = 'none';
+      }
+
       if (remoteImg && this.remoteFrames[currentIdx]) {
         remoteImg.src = this.remoteFrames[currentIdx];
         remoteImg.style.display = 'block';
@@ -612,9 +672,22 @@ export class DuetView implements AppView {
           const startShutterBtn = this.container?.querySelector('#startShutterBtn') as HTMLButtonElement;
           if (startShutterBtn) startShutterBtn.disabled = false;
           
-          // Re-render instructions for partner
-          const placeholderText = this.container?.querySelector('#remotePlaceholderText') as HTMLElement;
-          if (placeholderText) placeholderText.textContent = 'Waiting for photo...';
+          // Show remote live video again
+          const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
+          const remoteImg = this.container?.querySelector('#remoteSnapshotImg') as HTMLImageElement;
+          if (remoteVideo && remoteVideo.srcObject) {
+            remoteVideo.style.display = 'block';
+            if (remoteImg) remoteImg.style.display = 'none';
+            const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
+            if (placeholder) placeholder.style.display = 'none';
+          } else {
+            // Re-render instructions for partner
+            const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
+            const placeholderText = this.container?.querySelector('#remotePlaceholderText') as HTMLElement;
+            if (placeholder) placeholder.style.display = 'flex';
+            if (placeholderText) placeholderText.textContent = 'Waiting for feed...';
+            if (remoteImg) remoteImg.style.display = 'none';
+          }
         } else {
           // Finished all shots. Proceed to developing
           this.transitionToState('stitching');
@@ -838,6 +911,117 @@ export class DuetView implements AppView {
     }, 2000);
   }
 
+  private createPeerConnection() {
+    if (this.peerConnection) return;
+
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    console.log('WebRTC: Creating peer connection...');
+    this.peerConnection = new RTCPeerConnection(configuration);
+
+    // Add local tracks to peer connection
+    const localStream = this.camera.getStream();
+    if (localStream) {
+      console.log('WebRTC: Adding local tracks...');
+      localStream.getTracks().forEach((track) => {
+        if (this.peerConnection) {
+          this.peerConnection.addTrack(track, localStream);
+        }
+      });
+    }
+
+    // Handle remote track
+    this.peerConnection.ontrack = (event) => {
+      console.log('WebRTC: Remote track received', event.streams);
+      const remoteVideo = this.container?.querySelector('#remoteVideo') as HTMLVideoElement;
+      if (remoteVideo && event.streams && event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+        
+        // Hide placeholder and show video
+        const placeholder = this.container?.querySelector('#remotePlaceholder') as HTMLElement;
+        if (placeholder) {
+          placeholder.style.display = 'none';
+        }
+        remoteVideo.style.display = 'block';
+      }
+    };
+
+    // Handle ICE candidates
+    this.peerConnection.onicecandidate = (event) => {
+      if (event.candidate && this.peerConnection) {
+        console.log('WebRTC: Sending ICE candidate...');
+        this.broadcast('webrtc_candidate', { candidate: event.candidate });
+      }
+    };
+  }
+
+  private async initWebRTC() {
+    console.log('WebRTC: Initializing WebRTC session (role is host)...');
+    this.createPeerConnection();
+    if (this.peerConnection && this.role === 'host') {
+      try {
+        const offer = await this.peerConnection.createOffer();
+        await this.peerConnection.setLocalDescription(offer);
+        console.log('WebRTC: Creating and broadcasting offer...');
+        this.broadcast('webrtc_offer', { offer });
+      } catch (err) {
+        console.error('WebRTC: Failed to create offer', err);
+      }
+    }
+  }
+
+  private async handleWebRTCOffer(offer: RTCSessionDescriptionInit) {
+    console.log('WebRTC: Handling incoming offer...');
+    this.createPeerConnection();
+    if (this.peerConnection) {
+      try {
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await this.peerConnection.createAnswer();
+        await this.peerConnection.setLocalDescription(answer);
+        console.log('WebRTC: Broadcasting answer...');
+        this.broadcast('webrtc_answer', { answer });
+      } catch (err) {
+        console.error('WebRTC: Failed to handle offer and create answer', err);
+      }
+    }
+  }
+
+  private async handleWebRTCAnswer(answer: RTCSessionDescriptionInit) {
+    console.log('WebRTC: Handling incoming answer...');
+    if (this.peerConnection) {
+      try {
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (err) {
+        console.error('WebRTC: Failed to set remote description from answer', err);
+      }
+    }
+  }
+
+  private async handleWebRTCCandidate(candidate: RTCIceCandidateInit) {
+    if (this.peerConnection) {
+      try {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.warn('WebRTC: Failed to add ICE candidate', err);
+      }
+    }
+  }
+
+  private closeWebRTC() {
+    console.log('WebRTC: Closing peer connection...');
+    if (this.peerConnection) {
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+    this.localWebRTCReady = false;
+    this.partnerWebRTCReady = false;
+  }
+
   public destroy() {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);
@@ -848,6 +1032,7 @@ export class DuetView implements AppView {
       this.countdownInterval = null;
     }
     this.camera.stopCamera();
+    this.closeWebRTC();
 
     // Clean channels
     if (this.subscription) {

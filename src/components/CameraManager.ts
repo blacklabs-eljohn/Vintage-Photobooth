@@ -5,6 +5,10 @@ export class CameraManager {
 
   constructor() {}
 
+  public getStream(): MediaStream | null {
+    return this.stream;
+  }
+
   // Request camera access and bind it to video element
   public async startCamera(videoEl: HTMLVideoElement): Promise<MediaStream> {
     this.stopCamera(); // Make sure any old instance is stopped
