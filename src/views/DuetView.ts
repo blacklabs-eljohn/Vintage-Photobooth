@@ -318,19 +318,22 @@ export class DuetView implements AppView {
             <div class="lobby-status-box">
               <div class="presence-indicator">
                 <span class="status-dot ${this.localCameraReady ? 'active' : ''}"></span>
-                <span class="presence-label">Your Camera: ${this.localCameraReady ? '🟢 Ready' : '🔴 Calibrating'}</span>
+                <span class="presence-label">Your Camera: ${this.localCameraReady ? '🟢 Ready' : '🔴 Uncalibrated'}</span>
               </div>
               <div class="presence-indicator" style="margin-top: 6px;">
                 <span class="status-dot ${this.partnerCameraReady ? 'active' : ''}"></span>
-                <span class="presence-label">Partner's Camera: ${this.partnerCameraReady ? '🟢 Ready' : '🔴 Calibrating'}</span>
+                <span class="presence-label">Partner's Camera: ${this.partnerCameraReady ? '🟢 Ready' : '🔴 Uncalibrated'}</span>
               </div>
             </div>
 
             <p class="console-help-text">Please authorize camera permissions. Once both lenses are active, the session can begin.</p>
             
-            ${this.role === 'host'
-              ? `<button id="startCapturingBtn" class="btn-primary console-btn-primary" ${this.localCameraReady && this.partnerCameraReady ? '' : 'disabled'}>START DUET SHOT</button>`
-              : `<p class="console-help-text" style="color: #eab308; font-weight: bold; animation: led-blink 1s infinite alternate;">Waiting for host to start cameras...</p>`
+            ${!this.localCameraReady
+              ? `<button id="activateCameraBtn" class="btn-primary console-btn-primary">ACTIVATE MY LENS</button>`
+              : (this.role === 'host'
+                  ? `<button id="startCapturingBtn" class="btn-primary console-btn-primary" ${this.localCameraReady && this.partnerCameraReady ? '' : 'disabled'}>START DUET SHOT</button>`
+                  : `<p class="console-help-text" style="color: #eab308; font-weight: bold; animation: led-blink 1s infinite alternate;">Waiting for host to start capturing...</p>`
+                )
             }
             <button id="backToHomeBtn" class="btn-secondary console-btn-secondary">ABORT</button>
           </div>
@@ -394,6 +397,12 @@ export class DuetView implements AppView {
       }
     };
 
+    const activateCameraBtn = this.container!.querySelector('#activateCameraBtn');
+    activateCameraBtn?.addEventListener('click', () => {
+      this.audio.playCoinDrop();
+      startLocalCamera();
+    });
+
     backToHomeBtn?.addEventListener('click', () => {
       this.audio.playTypewriter();
       this.destroy();
@@ -408,9 +417,11 @@ export class DuetView implements AppView {
 
     // Run camera access
     setStatus('loading');
-    this.timeoutId = setTimeout(() => {
+    if (this.localCameraReady) {
       startLocalCamera();
-    }, 600);
+    } else {
+      if (tickerText) tickerText.textContent = 'AWAITING LENS ACTIVATION...';
+    }
   }
 
   private async renderCapturing() {
